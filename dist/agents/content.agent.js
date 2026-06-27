@@ -4,11 +4,55 @@ import { slugify } from '../utils/slug.js';
 import { getString, getStringArray } from './base.js';
 export class ContentAgent {
     name = 'content-agent';
-    version = '1.0.0';
+    version = '1.1.0';
     supports(jobType) {
-        return ['content.article', 'content.match-preview', 'content.event-recap'].includes(jobType);
+        return jobType.startsWith('content.');
     }
     async run(job) {
+        if (this.isPlanJob(job.jobType))
+            return this.runPlanJob(job);
+        return this.runBlogLikeJob(job);
+    }
+    async runPlanJob(job) {
+        const input = job.input || {};
+        const topic = getString(input, 'topic', this.defaultTopic(job));
+        const artifactType = this.artifactTypeFor(job.jobType);
+        const fallback = this.buildPlanFallback(job, topic);
+        const ai = getAiProvider();
+        const aiResult = await ai.generateJson({
+            system: 'You create FantasyMMAdness content planning artifacts. Return JSON only. Do not change official rules, scoring, contest logic, wallet behavior, or payouts.',
+            user: JSON.stringify({ vertical: job.vertical, jobType: job.jobType, topic, input, sourceEntity: job.sourceEntity }),
+            schemaName: 'ContentPlanPayload',
+            fallback,
+            temperature: 0.45,
+        });
+        const payload = { ...fallback, ...aiResult.output };
+        return {
+            artifact: {
+                jobId: job.jobId,
+                vertical: job.vertical,
+                jobType: job.jobType,
+                artifactType,
+                title: payload.title,
+                summary: payload.summary,
+                reviewStatus: 'AWAITING_REVIEW',
+                payload,
+                provenance: {
+                    provider: aiResult.provider,
+                    model: aiResult.model,
+                    promptVersion: 'content-plan-v1',
+                    agentVersion: this.version,
+                    generatedAt: new Date(),
+                    sources: [],
+                },
+                quality: { score: aiResult.warnings.length ? 74 : 86, warnings: aiResult.warnings },
+                metadata: { mode: job.mode, automationKey: input.automationKey },
+            },
+            tokenUsage: aiResult.tokenUsage,
+            warnings: aiResult.warnings,
+        };
+    }
+    async runBlogLikeJob(job) {
         const input = job.input || {};
         const topic = getString(input, 'topic', this.defaultTopic(job));
         const eventName = getString(input, 'eventName');
@@ -19,7 +63,7 @@ export class ContentAgent {
         const fallback = this.buildFallbackDraft(job, topic, eventName, matchTitle, keywords);
         const ai = getAiProvider();
         const aiResult = await ai.generateJson({
-            system: 'You create production-ready FantasyMMAdness website content. Follow the existing website style. Never invent official results, payouts, wallet values, or locked contest data. Return a blog draft compatible with the existing Blog model: metaTitle, metaDescription, header, sections[].',
+            system: 'You create production-ready FantasyMMAdness website content. Follow the existing website style. Never invent official results, payouts, wallet values, locked contest data, or scoring rules. Return a blog draft compatible with the existing Blog model: metaTitle, metaDescription, header, sections[].',
             user: JSON.stringify({
                 vertical: job.vertical,
                 jobType: job.jobType,
@@ -29,6 +73,9 @@ export class ContentAgent {
                 tone,
                 keywords,
                 targetAudience,
+                sourceEntity: job.sourceEntity,
+                automationKey: input.automationKey,
+                targetOutput: input.targetOutput,
                 currentWebsiteContract: {
                     blogFields: ['metaTitle', 'metaDescription', 'header', 'sections.title', 'sections.content', 'sections.headings'],
                     note: 'Backend will publish only after admin approval.',
@@ -42,17 +89,12 @@ export class ContentAgent {
         const warnings = [...aiResult.warnings];
         if (!parsed.success)
             warnings.push('AI output did not fully match WebsiteBlogDraft schema; fallback draft was used.');
-        const artifactType = job.jobType === 'content.match-preview'
-            ? 'content.match-preview-draft'
-            : job.jobType === 'content.event-recap'
-                ? 'content.event-recap-draft'
-                : 'content.article-draft';
         return {
             artifact: {
                 jobId: job.jobId,
                 vertical: job.vertical,
                 jobType: job.jobType,
-                artifactType,
+                artifactType: this.artifactTypeFor(job.jobType),
                 title: payload.header,
                 summary: payload.metaDescription,
                 reviewStatus: 'AWAITING_REVIEW',
@@ -60,28 +102,138 @@ export class ContentAgent {
                 provenance: {
                     provider: aiResult.provider,
                     model: aiResult.model,
-                    promptVersion: 'content-v1',
+                    promptVersion: 'content-v2',
                     agentVersion: this.version,
                     generatedAt: new Date(),
                     sources: [],
                 },
-                quality: {
-                    score: warnings.length ? 75 : 88,
-                    warnings,
-                },
+                quality: { score: warnings.length ? 75 : 88, warnings },
                 metadata: {
-                    mapsToBackendModel: 'Blog',
+                    mapsToBackendModel: this.mapsToBackendModel(job.jobType, job.vertical),
                     mode: job.mode,
+                    automationKey: input.automationKey,
                 },
             },
             tokenUsage: aiResult.tokenUsage,
             warnings,
         };
     }
+    artifactTypeFor(jobType) {
+        if (jobType === 'content.match-preview' || jobType === 'content.pro-wrestling-match-preview')
+            return 'content.match-preview-draft';
+        if (jobType === 'content.event-recap' || jobType === 'content.fight-result-recap' || jobType === 'content.pro-wrestling-result-recap')
+            return 'content.event-recap-draft';
+        if (jobType === 'content.fighter-profile' || jobType === 'content.wrestler-profile')
+            return 'content.profile-draft';
+        if (jobType.includes('newsletter'))
+            return 'content.newsletter-draft';
+        if (jobType === 'content.homepage-feature')
+            return 'content.homepage-feature';
+        if (jobType.includes('update-suggestion'))
+            return 'content.content-update-suggestion';
+        if (jobType === 'content.calendar')
+            return 'content.calendar-plan';
+        if (jobType === 'content.blog-topic-suggestions')
+            return 'content.topic-suggestions';
+        if (jobType === 'content.faq')
+            return 'content.faq-draft';
+        if (jobType === 'content.how-to-play')
+            return 'content.how-to-play-draft';
+        if (jobType === 'content.landing-page-suggestion')
+            return 'content.landing-page-suggestion';
+        return 'content.article-draft';
+    }
+    isPlanJob(jobType) {
+        return [
+            'content.calendar',
+            'content.blog-topic-suggestions',
+            'content.newsletter-draft',
+            'content.blog-newsletter-draft',
+            'content.homepage-feature',
+            'content.faq',
+            'content.how-to-play',
+            'content.landing-page-suggestion',
+            'content.old-blog-update-suggestion',
+            'content.fighter-update-suggestion',
+        ].includes(jobType);
+    }
+    mapsToBackendModel(jobType, vertical) {
+        if (jobType === 'content.fighter-profile')
+            return 'Fighter/ProfileContent';
+        if (jobType === 'content.wrestler-profile')
+            return 'ProWrestler/ProfileContent';
+        if (jobType === 'content.homepage-feature')
+            return 'HomepageFeature';
+        if (jobType.includes('newsletter'))
+            return 'NewsletterDraft';
+        return vertical === 'pro_wrestling' ? 'Blog/ProWrestlingContent' : 'Blog';
+    }
     defaultTopic(job) {
         return job.vertical === 'pro_wrestling'
             ? 'Fantasy pro-wrestling match prediction strategy'
             : 'Fantasy combat sports prediction strategy';
+    }
+    buildPlanFallback(job, topic) {
+        const title = this.planTitle(job.jobType, topic);
+        return {
+            title,
+            summary: `Automation-ready content plan for ${topic}.`,
+            items: [
+                {
+                    title: `${topic}: fantasy-focused overview`,
+                    contentType: this.contentTypeFor(job.jobType),
+                    targetKeyword: job.vertical === 'pro_wrestling' ? 'pro wrestling fantasy predictions' : 'mma fantasy predictions',
+                    priority: 'high',
+                    recommendedJobType: 'content.article',
+                    notes: 'Review for factual accuracy and align with current site rules before publishing.',
+                },
+                {
+                    title: `${topic}: social promotion angle`,
+                    contentType: 'social_draft',
+                    priority: 'medium',
+                    recommendedJobType: 'social.draft',
+                    notes: 'Use only after admin approval and platform credential validation.',
+                },
+            ],
+            publishingNotes: [
+                'Backend owns final publishing.',
+                'Admin review is recommended before live content or social publishing.',
+            ],
+        };
+    }
+    planTitle(jobType, topic) {
+        if (jobType === 'content.calendar')
+            return `Content calendar: ${topic}`;
+        if (jobType === 'content.blog-topic-suggestions')
+            return `Blog topic suggestions: ${topic}`;
+        if (jobType.includes('newsletter'))
+            return `Newsletter draft: ${topic}`;
+        if (jobType === 'content.homepage-feature')
+            return `Homepage feature copy: ${topic}`;
+        if (jobType === 'content.faq')
+            return `FAQ draft: ${topic}`;
+        if (jobType === 'content.how-to-play')
+            return `How-to-play content: ${topic}`;
+        if (jobType === 'content.landing-page-suggestion')
+            return `Landing page suggestion: ${topic}`;
+        return `Content update suggestion: ${topic}`;
+    }
+    contentTypeFor(jobType) {
+        if (jobType === 'content.calendar')
+            return 'content_calendar';
+        if (jobType === 'content.blog-topic-suggestions')
+            return 'topic_suggestion';
+        if (jobType.includes('newsletter'))
+            return 'newsletter';
+        if (jobType === 'content.homepage-feature')
+            return 'homepage_feature';
+        if (jobType === 'content.faq')
+            return 'faq';
+        if (jobType === 'content.how-to-play')
+            return 'how_to_play';
+        if (jobType === 'content.landing-page-suggestion')
+            return 'landing_page';
+        return 'content_update';
     }
     buildFallbackDraft(job, topic, eventName, matchTitle, keywords) {
         const titleSubject = matchTitle || eventName || topic;

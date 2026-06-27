@@ -1,11 +1,65 @@
 import { coerceRecord, getString } from './base.js';
 export class DataCandidateAgent {
     name = 'data-candidate-agent';
-    version = '1.0.0';
+    version = '1.1.0';
     supports(jobType) {
-        return jobType === 'data.external-candidate';
+        return jobType.startsWith('data.');
     }
     async run(job) {
+        if (job.jobType === 'data.trending-mma-topics' || job.jobType === 'data.trending-wrestling-topics') {
+            return this.trendReport(job);
+        }
+        return this.externalCandidate(job);
+    }
+    async trendReport(job) {
+        const input = job.input || {};
+        const verticalLabel = job.vertical === 'pro_wrestling' ? 'pro-wrestling' : 'MMA/combat';
+        const seedTopics = Array.isArray(input.seedTopics) ? input.seedTopics.map(String).filter(Boolean) : [];
+        const topics = seedTopics.length ? seedTopics : [
+            `${verticalLabel} fantasy predictions`,
+            `${verticalLabel} event preview`,
+            `${verticalLabel} contest strategy`,
+            `${verticalLabel} player picks`,
+        ];
+        return {
+            artifact: {
+                jobId: job.jobId,
+                vertical: job.vertical,
+                jobType: job.jobType,
+                artifactType: 'data.trend-report',
+                title: `Trend topic report: ${verticalLabel}`,
+                summary: `Draft topic opportunities for ${verticalLabel} traffic growth.`,
+                reviewStatus: 'AWAITING_REVIEW',
+                payload: {
+                    sourceMode: 'input_or_configured_sources',
+                    note: 'Phase 1 does not scrape live trend sources by default. Backend can pass source snapshots/page inventory, or source connectors can be enabled later.',
+                    topics: topics.map((topic, index) => ({
+                        topic,
+                        priority: index < 2 ? 'high' : 'medium',
+                        suggestedContentType: index % 2 === 0 ? 'blog' : 'social_campaign',
+                        targetIntent: 'fantasy sports discovery and contest participation',
+                        followUpJobTypes: ['content.article', 'seo.keyword-opportunity', 'social.draft'],
+                    })),
+                    recommendedNextSteps: [
+                        'Review topics in admin panel.',
+                        'Approve useful topics into content calendar.',
+                        'Create blog and social draft jobs from approved topics.',
+                    ],
+                },
+                provenance: {
+                    provider: 'internal-trend-planner',
+                    model: 'rules-v1',
+                    promptVersion: 'trend-data-v1',
+                    agentVersion: this.version,
+                    generatedAt: new Date(),
+                    sources: [],
+                },
+                quality: { score: seedTopics.length ? 82 : 64, warnings: seedTopics.length ? [] : ['No external trend source snapshot was supplied; output is a planning baseline.'] },
+                metadata: { mode: job.mode, automationKey: input.automationKey },
+            },
+        };
+    }
+    async externalCandidate(job) {
         const input = job.input || {};
         const sourceName = getString(input, 'sourceName', 'manual');
         const rawRecord = coerceRecord(input.rawRecord);

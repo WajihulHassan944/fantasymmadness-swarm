@@ -1,5 +1,6 @@
 import { env } from '../config/env.js';
 import { createJob } from './job.service.js';
+import { triggerAutomationEvent } from './automation.service.js';
 import { isoDateKey } from '../utils/time.js';
 import { logger } from '../utils/logger.js';
 
@@ -14,6 +15,7 @@ export class SchedulerService {
 
     const run = () => {
       this.createDailyContentJobs().catch((error) => logger.error({ error }, 'Scheduled content job creation failed'));
+      this.triggerScheduledAutomations().catch((error) => logger.error({ error }, 'Scheduled automation trigger failed'));
     };
 
     run();
@@ -51,10 +53,27 @@ export class SchedulerService {
         priority: 30,
         idempotencyKey: job.idempotencyKey,
         requestedBy: { source: 'scheduler', role: 'system' },
+        sourceEntity: { type: 'scheduler_tick', id: `daily-content:${key}:${job.vertical}`, label: job.topic },
         input: { topic: job.topic, keywords: ['FantasyMMAdness', 'fantasy predictions'] },
         metadata: { scheduled: true, dateKey: key },
       });
       logger.info({ jobId: result.job.jobId, created: result.created, idempotencyKey: job.idempotencyKey }, 'Scheduled content job ensured');
+    }
+  }
+
+  async triggerScheduledAutomations(date = new Date()): Promise<void> {
+    const key = isoDateKey(date);
+    for (const trigger of ['schedule.hourly', 'schedule.daily', 'schedule.weekly']) {
+      const result = await triggerAutomationEvent({
+        trigger,
+        sourceEntity: { type: 'scheduler_tick', id: `${trigger}:${key}`, label: trigger },
+        input: { dateKey: key, scheduler: true },
+        requestedBy: { source: 'scheduler', role: 'system' },
+        dryRun: false,
+        force: false,
+        metadata: { scheduled: true, trigger, dateKey: key },
+      });
+      logger.info({ trigger, result }, 'Scheduled automation trigger ensured');
     }
   }
 }

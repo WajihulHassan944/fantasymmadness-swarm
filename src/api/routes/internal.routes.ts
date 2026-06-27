@@ -13,6 +13,16 @@ import {
   listArtifactsHandler,
   reviewArtifactHandler,
 } from '../controllers/artifact.controller.js';
+import {
+  automationDashboardHandler,
+  bulkUpdateAutomationSettingsHandler,
+  getAutomationHandler,
+  listAutomationLogsHandler,
+  listAutomationsHandler,
+  resetAutomationSettingHandler,
+  triggerAutomationEventHandler,
+  updateAutomationSettingHandler,
+} from '../controllers/automation.controller.js';
 
 export const internalRouter = Router();
 
@@ -30,6 +40,15 @@ internalRouter.get('/health', (_req, res) => {
 internalRouter.get('/agents', (_req, res) => {
   res.json({ ok: true, agents: agentRegistry.list() });
 });
+
+internalRouter.get('/automations', asyncHandler(listAutomationsHandler));
+internalRouter.get('/automations/dashboard', asyncHandler(automationDashboardHandler));
+internalRouter.get('/automations/logs', asyncHandler(listAutomationLogsHandler));
+internalRouter.post('/automations/settings/bulk', asyncHandler(bulkUpdateAutomationSettingsHandler));
+internalRouter.post('/automations/events', asyncHandler(triggerAutomationEventHandler));
+internalRouter.get('/automations/:key', asyncHandler(getAutomationHandler));
+internalRouter.patch('/automations/:key/settings', asyncHandler(updateAutomationSettingHandler));
+internalRouter.post('/automations/:key/reset', asyncHandler(resetAutomationSettingHandler));
 
 internalRouter.post('/jobs', asyncHandler(createJobHandler));
 internalRouter.get('/jobs', asyncHandler(listJobsHandler));

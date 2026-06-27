@@ -64,6 +64,16 @@ const envSchema = z.object({
   BACKEND_BASE_URL: optionalString,
   BACKEND_HMAC_KEY_ID: z.string().default('backend-v1'),
   BACKEND_HMAC_SECRET: optionalString,
+
+  SWARM_DEFAULT_MODE: z.enum(['DRY_RUN', 'SHADOW', 'DRAFT_ONLY', 'APPROVAL_REQUIRED', 'AUTOMATED']).default('DRAFT_ONLY'),
+  SWARM_AUTO_PUBLISH_ENABLED: booleanFromEnv(false),
+  SWARM_AUTO_IMPORT_ENABLED: booleanFromEnv(false),
+  SWARM_SOCIAL_PUBLISH_ENABLED: booleanFromEnv(false),
+
+  TWITTER_API_KEY: optionalString,
+  TWITTER_API_SECRET: optionalString,
+  TWITTER_ACCESS_TOKEN: optionalString,
+  TWITTER_ACCESS_SECRET: optionalString,
 });
 
 const parsed = envSchema.safeParse(process.env);

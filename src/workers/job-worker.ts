@@ -108,16 +108,18 @@ export class JobWorker {
       }
 
       const result = await agent.run(freshJob);
-      const artifact = await createArtifact(result.artifact);
+      const reviewStatus = this.reviewStatusForMode(freshJob.mode, result.artifact.reviewStatus);
+      const artifact = await createArtifact({ ...result.artifact, reviewStatus });
+      const nextStatus = this.nextStatusForMode(freshJob.mode);
 
-      freshJob.status = 'awaiting_review';
+      freshJob.status = nextStatus;
       freshJob.artifactId = artifact.artifactId;
       freshJob.completedAt = new Date();
       freshJob.leasedBy = undefined;
       freshJob.leaseExpiresAt = undefined;
       freshJob.tokenUsage = result.tokenUsage;
       freshJob.costEstimate = result.costEstimate;
-      freshJob.statusHistory.push({ status: 'awaiting_review', at: new Date(), reason: `artifact-created:${artifact.artifactId}` });
+      freshJob.statusHistory.push({ status: nextStatus, at: new Date(), reason: `artifact-created:${artifact.artifactId}` });
       await freshJob.save();
 
       run.status = 'succeeded';
@@ -128,10 +130,22 @@ export class JobWorker {
       await run.save();
 
       await sendJobCompletedCallback(freshJob, artifact);
-      logger.info({ jobId: job.jobId, artifactId: artifact.artifactId, agent: agent.name }, 'Job completed and awaiting review');
+      logger.info({ jobId: job.jobId, artifactId: artifact.artifactId, agent: agent.name, status: freshJob.status }, 'Job completed');
     } catch (error) {
       await this.markFailed(job.jobId, run.runId, error);
     }
+  }
+
+
+  private nextStatusForMode(mode: string) {
+    if (mode === 'DRY_RUN' || mode === 'SHADOW') return 'succeeded' as const;
+    return 'awaiting_review' as const;
+  }
+
+  private reviewStatusForMode(mode: string, requested: string | undefined) {
+    if (mode === 'DRY_RUN' || mode === 'SHADOW') return 'DRAFT' as const;
+    if (requested === 'APPROVED' || requested === 'PUBLISHED') return 'AWAITING_REVIEW' as const;
+    return (requested || 'AWAITING_REVIEW') as any;
   }
 
   private async markCancelled(job: SwarmJobDocument, runId: string): Promise<void> {

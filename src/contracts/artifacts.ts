@@ -2,18 +2,41 @@ import { z } from 'zod';
 import { verticalSchema } from './domain.js';
 import { jobTypeSchema } from './job.js';
 
-export const artifactTypeSchema = z.enum([
+export const artifactTypeValues = [
   'content.article-draft',
   'content.match-preview-draft',
   'content.event-recap-draft',
+  'content.profile-draft',
+  'content.newsletter-draft',
+  'content.homepage-feature',
+  'content.content-update-suggestion',
+  'content.calendar-plan',
+  'content.topic-suggestions',
+  'content.faq-draft',
+  'content.how-to-play-draft',
+  'content.landing-page-suggestion',
   'seo.audit-report',
+  'seo.metadata-package',
+  'seo.schema-markup',
+  'seo.sitemap-refresh-plan',
+  'seo.internal-link-plan',
+  'seo.keyword-opportunity-report',
+  'seo.technical-issue-report',
   'social.post-draft',
+  'social.calendar-plan',
   'data.external-candidate',
+  'data.trend-report',
   'wrestling.scorecard-suggestion',
   'wrestling.match-analysis',
   'wrestling.wrestler-profile',
+  'analytics.report',
+  'media.image-prompt',
+  'notification.draft',
+  'automation.control-plan',
   'system.health-check-result',
-]);
+] as const;
+
+export const artifactTypeSchema = z.enum(artifactTypeValues);
 export type ArtifactType = z.infer<typeof artifactTypeSchema>;
 
 export const reviewStatusSchema = z.enum(['DRAFT', 'AWAITING_REVIEW', 'APPROVED', 'REJECTED', 'PUBLISHED']);

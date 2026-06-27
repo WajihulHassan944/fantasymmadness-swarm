@@ -19,13 +19,17 @@ This repository is intentionally separate from the production Next.js frontend a
 - HMAC/API-key server-to-server auth
 - Artifact review status model
 - Docker Compose deployment files
+- Automation registry and settings API
+- Automation event trigger API
+- Admin-dashboard-ready automation logs and controls
+- Expanded job types for blogs, SEO, social, media, analytics, notifications, and content planning
 
 ## Safety boundaries
 
 - No direct writes to the live website collections
 - No wallet, payout, entry, prediction, or settlement operations
 - No browser-facing swarm secret
-- Social output is draft-only
+- Social output is draft/approval-first by default
 - Backend remains the official source for publishing and scoring in Phase 2
 
 ## Main commands
@@ -52,6 +56,11 @@ POST /internal/v1/jobs/:jobId/retry
 GET  /internal/v1/artifacts
 GET  /internal/v1/artifacts/:artifactId
 POST /internal/v1/artifacts/:artifactId/review
+GET  /internal/v1/automations
+GET  /internal/v1/automations/dashboard
+GET  /internal/v1/automations/logs
+PATCH /internal/v1/automations/:key/settings
+POST /internal/v1/automations/events
 ```
 
 `/internal/v1/*` requires `x-swarm-api-key` or signed HMAC headers.
@@ -91,3 +100,18 @@ docker compose logs -f swarm-worker
 ## Phase 2 connection point
 
 The Vercel backend should call only `/internal/v1/jobs` and `/internal/v1/artifacts/*` using HMAC or the API key. The frontend should never call this service directly.
+
+
+## Automation expansion
+
+This package includes the Phase 1 swarm-side foundation for the requested traffic-growth ecosystem:
+
+- fight/match publish automations
+- result recap automations
+- blog/social/newsletter automations
+- SEO metadata, schema, sitemap, internal-linking, and audit automations
+- fighter/wrestler profile content automations
+- content calendar and topic suggestion automations
+- admin settings, logs, dashboard, failed-job retry, and notification automations
+
+See `PHASE1_AUTOMATION_EXPANSION.md` for event examples.

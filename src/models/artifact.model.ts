@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import mongoose, { Schema } from 'mongoose';
-import type { ArtifactType, ReviewStatus } from '../contracts/artifacts.js';
+import { artifactTypeValues, type ArtifactType, type ReviewStatus } from '../contracts/artifacts.js';
 import type { JobType } from '../contracts/job.js';
 import type { Vertical } from '../contracts/domain.js';
 
@@ -29,7 +29,7 @@ const swarmArtifactSchema = new Schema<SwarmArtifactDocument>({
   jobId: { type: String, required: true, index: true },
   vertical: { type: String, enum: ['combat', 'pro_wrestling'], required: true, index: true },
   jobType: { type: String, required: true, index: true },
-  artifactType: { type: String, required: true, index: true },
+  artifactType: { type: String, enum: artifactTypeValues, required: true, index: true },
   title: { type: String, required: true },
   summary: String,
   reviewStatus: { type: String, enum: ['DRAFT', 'AWAITING_REVIEW', 'APPROVED', 'REJECTED', 'PUBLISHED'], default: 'AWAITING_REVIEW', index: true },

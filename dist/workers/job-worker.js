@@ -97,15 +97,17 @@ export class JobWorker {
                 return;
             }
             const result = await agent.run(freshJob);
-            const artifact = await createArtifact(result.artifact);
-            freshJob.status = 'awaiting_review';
+            const reviewStatus = this.reviewStatusForMode(freshJob.mode, result.artifact.reviewStatus);
+            const artifact = await createArtifact({ ...result.artifact, reviewStatus });
+            const nextStatus = this.nextStatusForMode(freshJob.mode);
+            freshJob.status = nextStatus;
             freshJob.artifactId = artifact.artifactId;
             freshJob.completedAt = new Date();
             freshJob.leasedBy = undefined;
             freshJob.leaseExpiresAt = undefined;
             freshJob.tokenUsage = result.tokenUsage;
             freshJob.costEstimate = result.costEstimate;
-            freshJob.statusHistory.push({ status: 'awaiting_review', at: new Date(), reason: `artifact-created:${artifact.artifactId}` });
+            freshJob.statusHistory.push({ status: nextStatus, at: new Date(), reason: `artifact-created:${artifact.artifactId}` });
             await freshJob.save();
             run.status = 'succeeded';
             run.outputArtifactId = artifact.artifactId;
@@ -114,11 +116,23 @@ export class JobWorker {
             run.finishedAt = new Date();
             await run.save();
             await sendJobCompletedCallback(freshJob, artifact);
-            logger.info({ jobId: job.jobId, artifactId: artifact.artifactId, agent: agent.name }, 'Job completed and awaiting review');
+            logger.info({ jobId: job.jobId, artifactId: artifact.artifactId, agent: agent.name, status: freshJob.status }, 'Job completed');
         }
         catch (error) {
             await this.markFailed(job.jobId, run.runId, error);
         }
+    }
+    nextStatusForMode(mode) {
+        if (mode === 'DRY_RUN' || mode === 'SHADOW')
+            return 'succeeded';
+        return 'awaiting_review';
+    }
+    reviewStatusForMode(mode, requested) {
+        if (mode === 'DRY_RUN' || mode === 'SHADOW')
+            return 'DRAFT';
+        if (requested === 'APPROVED' || requested === 'PUBLISHED')
+            return 'AWAITING_REVIEW';
+        return (requested || 'AWAITING_REVIEW');
     }
     async markCancelled(job, runId) {
         job.status = 'cancelled';

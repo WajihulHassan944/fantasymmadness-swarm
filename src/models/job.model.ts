@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import mongoose, { Schema } from 'mongoose';
-import type { JobStatus, JobType } from '../contracts/job.js';
+import { jobTypeValues, type JobStatus, type JobType } from '../contracts/job.js';
 import type { SwarmMode, Vertical } from '../contracts/domain.js';
 
 export interface SwarmJobDocument extends mongoose.Document {
@@ -46,18 +46,7 @@ const swarmJobSchema = new Schema<SwarmJobDocument>({
   vertical: { type: String, enum: ['combat', 'pro_wrestling'], required: true, index: true },
   jobType: {
     type: String,
-    enum: [
-      'content.article',
-      'content.match-preview',
-      'content.event-recap',
-      'seo.audit',
-      'social.draft',
-      'data.external-candidate',
-      'wrestling.scorecard-suggestion',
-      'wrestling.match-analysis',
-      'wrestling.wrestler-profile',
-      'system.health-check',
-    ],
+    enum: jobTypeValues,
     required: true,
     index: true,
   },

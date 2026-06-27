@@ -3,6 +3,7 @@ import { agentRegistry } from '../../agents/registry.js';
 import { isMongoReady } from '../../db/connection.js';
 import { cancelJobHandler, createJobHandler, getJobHandler, listJobsHandler, retryJobHandler, } from '../controllers/job.controller.js';
 import { getArtifactHandler, listArtifactsHandler, reviewArtifactHandler, } from '../controllers/artifact.controller.js';
+import { automationDashboardHandler, bulkUpdateAutomationSettingsHandler, getAutomationHandler, listAutomationLogsHandler, listAutomationsHandler, resetAutomationSettingHandler, triggerAutomationEventHandler, updateAutomationSettingHandler, } from '../controllers/automation.controller.js';
 export const internalRouter = Router();
 const asyncHandler = (handler) => (req, res, next) => handler(req, res, next).catch(next);
 internalRouter.get('/', (_req, res) => {
@@ -14,6 +15,14 @@ internalRouter.get('/health', (_req, res) => {
 internalRouter.get('/agents', (_req, res) => {
     res.json({ ok: true, agents: agentRegistry.list() });
 });
+internalRouter.get('/automations', asyncHandler(listAutomationsHandler));
+internalRouter.get('/automations/dashboard', asyncHandler(automationDashboardHandler));
+internalRouter.get('/automations/logs', asyncHandler(listAutomationLogsHandler));
+internalRouter.post('/automations/settings/bulk', asyncHandler(bulkUpdateAutomationSettingsHandler));
+internalRouter.post('/automations/events', asyncHandler(triggerAutomationEventHandler));
+internalRouter.get('/automations/:key', asyncHandler(getAutomationHandler));
+internalRouter.patch('/automations/:key/settings', asyncHandler(updateAutomationSettingHandler));
+internalRouter.post('/automations/:key/reset', asyncHandler(resetAutomationSettingHandler));
 internalRouter.post('/jobs', asyncHandler(createJobHandler));
 internalRouter.get('/jobs', asyncHandler(listJobsHandler));
 internalRouter.get('/jobs/:jobId', asyncHandler(getJobHandler));
