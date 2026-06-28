@@ -55,12 +55,13 @@ export class ContentAgent {
     async runBlogLikeJob(job) {
         const input = job.input || {};
         const topic = getString(input, 'topic', this.defaultTopic(job));
+        const sport = getString(input, 'sport', getString(input, 'discipline', job.vertical === 'pro_wrestling' ? 'pro_wrestling' : 'mma'));
         const eventName = getString(input, 'eventName');
         const matchTitle = getString(input, 'matchTitle');
         const tone = getString(input, 'tone', 'confident, analytical, fantasy-sports focused');
         const keywords = getStringArray(input, 'keywords');
         const targetAudience = getString(input, 'targetAudience', 'FantasyMMAdness players and combat-sports fans');
-        const fallback = this.buildFallbackDraft(job, topic, eventName, matchTitle, keywords);
+        const fallback = this.buildFallbackDraft(job, topic, eventName, matchTitle, keywords, sport);
         const ai = getAiProvider();
         const aiResult = await ai.generateJson({
             system: 'You create production-ready FantasyMMAdness website content. Follow the existing website style. Never invent official results, payouts, wallet values, locked contest data, or scoring rules. Return a blog draft compatible with the existing Blog model: metaTitle, metaDescription, header, sections[].',
@@ -73,6 +74,7 @@ export class ContentAgent {
                 tone,
                 keywords,
                 targetAudience,
+                sport,
                 sourceEntity: job.sourceEntity,
                 automationKey: input.automationKey,
                 targetOutput: input.targetOutput,
@@ -112,6 +114,9 @@ export class ContentAgent {
                     mapsToBackendModel: this.mapsToBackendModel(job.jobType, job.vertical),
                     mode: job.mode,
                     automationKey: input.automationKey,
+                    campaignId: input.campaignId,
+                    campaignType: input.campaignType,
+                    sport,
                 },
             },
             tokenUsage: aiResult.tokenUsage,
@@ -235,9 +240,18 @@ export class ContentAgent {
             return 'landing_page';
         return 'content_update';
     }
-    buildFallbackDraft(job, topic, eventName, matchTitle, keywords) {
+    verticalLabel(vertical, sport = 'mma') {
+        if (vertical === 'pro_wrestling')
+            return 'Pro Wrestling';
+        if (sport === 'boxing')
+            return 'Boxing';
+        if (sport === 'kickboxing')
+            return 'Kickboxing';
+        return 'MMA';
+    }
+    buildFallbackDraft(job, topic, eventName, matchTitle, keywords, sport = 'mma') {
         const titleSubject = matchTitle || eventName || topic;
-        const verticalLabel = job.vertical === 'pro_wrestling' ? 'Pro Wrestling' : 'Combat Sports';
+        const verticalLabel = this.verticalLabel(job.vertical, sport);
         const header = `${titleSubject}: ${verticalLabel} Fantasy Preview`;
         return {
             vertical: job.vertical,
@@ -255,7 +269,9 @@ export class ContentAgent {
                             title: 'Fantasy angle',
                             content: job.vertical === 'pro_wrestling'
                                 ? 'Focus on HP, BP, K, PM, FM volume patterns, winner selection, and match-format context.'
-                                : 'Focus on matchup tendencies, finishing risk, fight pace, fantasy scoring categories, and contest strategy.',
+                                : sport === 'boxing'
+                                    ? 'Focus on boxing style, pace, round-by-round activity, knockdown risk, durability, and fantasy contest strategy.'
+                                    : 'Focus on matchup tendencies, finishing risk, fight pace, fantasy scoring categories, and contest strategy.',
                         },
                     ],
                 },

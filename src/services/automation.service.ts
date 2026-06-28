@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { AUTOMATION_DEFINITIONS, automationByKey, automationsByTrigger, type AutomationDefinition } from '../automations/definitions.js';
 import { swarmModeSchema, verticalSchema, type SwarmMode, type Vertical } from '../contracts/domain.js';
 import { AutomationLog } from '../models/automation-log.model.js';
+import { SwarmCampaign } from '../models/campaign.model.js';
 import { AutomationSetting, type AutomationSettingDocument } from '../models/automation-setting.model.js';
 import { createJob } from './job.service.js';
 import { AppError } from '../utils/errors.js';
@@ -169,7 +170,10 @@ export async function getAutomationDashboard(): Promise<Record<string, unknown>>
     return acc;
   }, {});
 
-  const recentLogs = await AutomationLog.find({}).sort({ createdAt: -1 }).limit(20);
+  const [recentLogs, recentCampaigns] = await Promise.all([
+    AutomationLog.find({}).sort({ createdAt: -1 }).limit(20),
+    SwarmCampaign.find({}).sort({ createdAt: -1 }).limit(10),
+  ]);
 
   return {
     totals: {
@@ -182,6 +186,17 @@ export async function getAutomationDashboard(): Promise<Record<string, unknown>>
     byCategory,
     enabledByCategory,
     groups: [...new Set(automations.map((item) => item.adminGroup))].sort(),
+    recentCampaigns: recentCampaigns.map((campaign) => ({
+      campaignId: campaign.campaignId,
+      campaignType: campaign.campaignType,
+      title: campaign.title,
+      vertical: campaign.vertical,
+      sport: campaign.sport,
+      status: campaign.status,
+      counts: campaign.counts,
+      jobIds: campaign.jobIds,
+      createdAt: campaign.createdAt,
+    })),
     recentLogs: recentLogs.map((log) => ({
       logId: log.logId,
       key: log.key,

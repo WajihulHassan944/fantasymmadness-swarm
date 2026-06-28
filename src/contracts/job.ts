@@ -115,6 +115,7 @@ export const listJobsQuerySchema = z.object({
   status: jobStatusSchema.optional(),
   vertical: verticalSchema.optional(),
   jobType: jobTypeSchema.optional(),
+  campaignId: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(25),
 });

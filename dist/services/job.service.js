@@ -45,6 +45,8 @@ export async function listJobs(rawQuery) {
         filter.vertical = query.vertical;
     if (query.jobType)
         filter.jobType = query.jobType;
+    if (query.campaignId)
+        filter['metadata.campaignId'] = query.campaignId;
     const [items, total] = await Promise.all([
         SwarmJob.find(filter).sort({ createdAt: -1 }).skip((query.page - 1) * query.limit).limit(query.limit),
         SwarmJob.countDocuments(filter),

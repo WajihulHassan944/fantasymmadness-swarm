@@ -9,7 +9,8 @@ export class SocialAgent {
     }
     async run(job) {
         const input = job.input || {};
-        const campaignName = getString(input, 'campaignName', this.defaultCampaignName(job));
+        const sport = getString(input, 'sport', getString(input, 'discipline', job.vertical === 'pro_wrestling' ? 'pro_wrestling' : 'mma'));
+        const campaignName = getString(input, 'campaignName', this.defaultCampaignName(job, sport));
         const topic = getString(input, 'topic', getString(input, 'title', campaignName));
         const platforms = getStringArray(input, 'platforms');
         const targetPlatforms = platforms.length ? platforms : this.defaultPlatforms(job.jobType);
@@ -21,7 +22,7 @@ export class SocialAgent {
             posts: targetPlatforms.map((platform) => ({
                 platform: platform,
                 text: this.defaultPostText(job.jobType, topic),
-                hashtags: [...new Set(['FantasyMMAdness', job.vertical === 'pro_wrestling' ? 'ProWrestling' : 'MMAFantasy', ...hashtags])],
+                hashtags: [...new Set(['FantasyMMAdness', this.defaultSportHashtag(job.vertical, sport), ...hashtags])],
                 mediaSuggestion: 'Use approved event, fighter, wrestler, contest, or blog artwork from the existing website asset workflow.',
                 callToAction: this.defaultCallToAction(job.jobType),
             })),
@@ -40,7 +41,7 @@ export class SocialAgent {
         const ai = getAiProvider();
         const aiResult = await ai.generateJson({
             system: 'You create safe social-media drafts for FantasyMMAdness. Avoid unsupported odds, guarantees, financial claims, or unverified results. Return JSON only. Keep posts concise and platform-ready.',
-            user: JSON.stringify({ vertical: job.vertical, jobType: job.jobType, campaignName, topic, platforms: targetPlatforms, hashtags, automationKey: input.automationKey, targetOutput: input.targetOutput }),
+            user: JSON.stringify({ vertical: job.vertical, jobType: job.jobType, sport, campaignName, topic, platforms: targetPlatforms, hashtags, automationKey: input.automationKey, campaignId: input.campaignId, targetOutput: input.targetOutput }),
             schemaName: 'SocialDraftPayload',
             fallback,
             temperature: 0.7,
@@ -74,6 +75,9 @@ export class SocialAgent {
                     canAutoPublish,
                     mode: job.mode,
                     automationKey: input.automationKey,
+                    campaignId: input.campaignId,
+                    campaignType: input.campaignType,
+                    sport,
                     livePostingImplementedBy: 'backend-or-social-provider-adapter-after-approval',
                 },
             },
@@ -81,14 +85,29 @@ export class SocialAgent {
             warnings: aiResult.warnings,
         };
     }
-    defaultCampaignName(job) {
+    defaultCampaignName(job, sport = 'mma') {
         if (job.jobType.includes('winner'))
             return 'FantasyMMAdness winners announcement';
         if (job.jobType.includes('reminder'))
             return 'FantasyMMAdness contest reminder';
         if (job.jobType.includes('blog'))
             return 'FantasyMMAdness blog promotion';
-        return job.vertical === 'pro_wrestling' ? 'Pro Wrestling Fantasy Contest' : 'Fight Fantasy Contest';
+        if (job.vertical === 'pro_wrestling')
+            return 'Pro Wrestling Fantasy Contest';
+        if (sport === 'boxing')
+            return 'Boxing Fantasy Fight Campaign';
+        if (sport === 'kickboxing')
+            return 'Kickboxing Fantasy Fight Campaign';
+        return 'Fight Fantasy Contest';
+    }
+    defaultSportHashtag(vertical, sport = 'mma') {
+        if (vertical === 'pro_wrestling')
+            return 'ProWrestling';
+        if (sport === 'boxing')
+            return 'BoxingFantasy';
+        if (sport === 'kickboxing')
+            return 'KickboxingFantasy';
+        return 'MMAFantasy';
     }
     defaultPlatforms(jobType) {
         if (jobType.includes('discord'))

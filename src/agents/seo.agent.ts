@@ -19,6 +19,14 @@ interface SeoAuditPayload extends Record<string, unknown> {
   schemaMarkup: Record<string, unknown>;
   internalLinkSuggestions: Array<{ anchor: string; targetPath: string; reason: string }>;
   contentBrief: string[];
+  applicationPlan: {
+    managedBySwarm: boolean;
+    requiresBackendApply: boolean;
+    safeToAutoApply: boolean;
+    targetFields: string[];
+    backendAction: string;
+    notes: string[];
+  };
 }
 
 export class SeoAgent implements SwarmAgent {
@@ -32,7 +40,8 @@ export class SeoAgent implements SwarmAgent {
   async run(job: SwarmJobDocument): Promise<AgentExecutionResult> {
     const input = job.input || {};
     const targetUrl = getString(input, 'targetUrl');
-    const targetKeyword = getString(input, 'targetKeyword', this.defaultKeyword(job));
+    const sport = getString(input, 'sport', getString(input, 'discipline', job.vertical === 'pro_wrestling' ? 'pro_wrestling' : 'mma'));
+    const targetKeyword = getString(input, 'targetKeyword', this.defaultKeyword(job, sport));
     const pageTitle = getString(input, 'pageTitle', getString(input, 'title', 'FantasyMMAdness'));
     const secondaryKeywords = getStringArray(input, 'secondaryKeywords');
 
@@ -74,6 +83,7 @@ export class SeoAgent implements SwarmAgent {
         'Explain how the fantasy format works without changing official website rules.',
         ...secondaryKeywords.map((keyword) => `Naturally include secondary keyword: ${keyword}`),
       ],
+      applicationPlan: this.applicationPlanFor(job.jobType),
     };
 
     const ai = getAiProvider();
@@ -90,6 +100,7 @@ export class SeoAgent implements SwarmAgent {
         targetOutput: input.targetOutput,
         suppliedPageInventory: input.pageInventory,
         suppliedEntity: job.sourceEntity,
+        sport,
       }),
       schemaName: 'SeoAuditPayload',
       fallback,
@@ -105,7 +116,7 @@ export class SeoAgent implements SwarmAgent {
         title: `${this.titlePrefix(job.jobType)}: ${targetKeyword}`,
         summary: aiResult.output.metaDescription,
         reviewStatus: 'AWAITING_REVIEW',
-        payload: aiResult.output,
+        payload: { ...aiResult.output, applicationPlan: aiResult.output.applicationPlan || fallback.applicationPlan },
         provenance: {
           provider: aiResult.provider,
           model: aiResult.model,
@@ -115,7 +126,14 @@ export class SeoAgent implements SwarmAgent {
           sources: [],
         },
         quality: { score: aiResult.warnings.length ? 76 : 90, warnings: aiResult.warnings },
-        metadata: { mode: job.mode, automationKey: input.automationKey },
+        metadata: {
+          mode: job.mode,
+          automationKey: input.automationKey,
+          seoManagedBySwarm: true,
+          seoAppliedDirectly: false,
+          requiresBackendApply: true,
+          sport,
+        },
       },
       tokenUsage: aiResult.tokenUsage,
       warnings: aiResult.warnings,
@@ -132,7 +150,9 @@ export class SeoAgent implements SwarmAgent {
     return 'seo.audit-report' as const;
   }
 
-  private defaultKeyword(job: SwarmJobDocument): string {
+  private defaultKeyword(job: SwarmJobDocument, sport = 'mma'): string {
+    if (sport === 'boxing') return 'boxing fantasy fight predictions';
+    if (sport === 'kickboxing') return 'kickboxing fantasy fight predictions';
     if (job.jobType.includes('wrestler') || job.vertical === 'pro_wrestling') return 'pro wrestling fantasy predictions';
     if (job.jobType.includes('fighter')) return 'mma fighter fantasy profile';
     if (job.jobType.includes('event')) return 'mma fantasy event preview';
@@ -146,6 +166,28 @@ export class SeoAgent implements SwarmAgent {
     if (jobType.includes('keyword')) return 'Keyword opportunities';
     if (jobType.includes('missing') || jobType.includes('broken') || jobType.includes('duplicate') || jobType.includes('canonical')) return 'SEO issue report';
     return 'SEO audit';
+  }
+
+  private applicationPlanFor(jobType: JobType): SeoAuditPayload['applicationPlan'] {
+    const action = jobType.includes('sitemap')
+      ? 'queue_sitemap_refresh'
+      : jobType.includes('schema')
+        ? 'apply_schema_markup_after_admin_approval'
+        : jobType.includes('link')
+          ? 'apply_internal_link_suggestions_after_admin_approval'
+          : 'patch_page_seo_fields_after_admin_approval';
+    return {
+      managedBySwarm: true,
+      requiresBackendApply: true,
+      safeToAutoApply: false,
+      targetFields: ['metaTitle', 'metaDescription', 'openGraph', 'twitterCard', 'schemaMarkup', 'internalLinks'],
+      backendAction: action,
+      notes: [
+        'The swarm generates SEO packages and application instructions.',
+        'The backend/frontend must approve and apply changes to website pages.',
+        'This prevents automated SEO changes from silently modifying live content.',
+      ],
+    };
   }
 
   private defaultSchema(job: SwarmJobDocument, pageTitle: string, targetKeyword: string): Record<string, unknown> {

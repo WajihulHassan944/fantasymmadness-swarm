@@ -78,12 +78,13 @@ export class ContentAgent implements SwarmAgent {
   private async runBlogLikeJob(job: SwarmJobDocument): Promise<AgentExecutionResult> {
     const input = job.input || {};
     const topic = getString(input, 'topic', this.defaultTopic(job));
+    const sport = getString(input, 'sport', getString(input, 'discipline', job.vertical === 'pro_wrestling' ? 'pro_wrestling' : 'mma'));
     const eventName = getString(input, 'eventName');
     const matchTitle = getString(input, 'matchTitle');
     const tone = getString(input, 'tone', 'confident, analytical, fantasy-sports focused');
     const keywords = getStringArray(input, 'keywords');
     const targetAudience = getString(input, 'targetAudience', 'FantasyMMAdness players and combat-sports fans');
-    const fallback = this.buildFallbackDraft(job, topic, eventName, matchTitle, keywords);
+    const fallback = this.buildFallbackDraft(job, topic, eventName, matchTitle, keywords, sport);
 
     const ai = getAiProvider();
     const aiResult = await ai.generateJson<WebsiteBlogDraft>({
@@ -97,6 +98,7 @@ export class ContentAgent implements SwarmAgent {
         tone,
         keywords,
         targetAudience,
+        sport,
         sourceEntity: job.sourceEntity,
         automationKey: input.automationKey,
         targetOutput: input.targetOutput,
@@ -137,6 +139,9 @@ export class ContentAgent implements SwarmAgent {
           mapsToBackendModel: this.mapsToBackendModel(job.jobType, job.vertical),
           mode: job.mode,
           automationKey: input.automationKey,
+          campaignId: input.campaignId,
+          campaignType: input.campaignType,
+          sport,
         },
       },
       tokenUsage: aiResult.tokenUsage,
@@ -239,15 +244,23 @@ export class ContentAgent implements SwarmAgent {
     return 'content_update';
   }
 
+  private verticalLabel(vertical: string, sport = 'mma'): string {
+    if (vertical === 'pro_wrestling') return 'Pro Wrestling';
+    if (sport === 'boxing') return 'Boxing';
+    if (sport === 'kickboxing') return 'Kickboxing';
+    return 'MMA';
+  }
+
   private buildFallbackDraft(
     job: SwarmJobDocument,
     topic: string,
     eventName: string,
     matchTitle: string,
     keywords: string[],
+    sport = 'mma',
   ): WebsiteBlogDraft {
     const titleSubject = matchTitle || eventName || topic;
-    const verticalLabel = job.vertical === 'pro_wrestling' ? 'Pro Wrestling' : 'Combat Sports';
+    const verticalLabel = this.verticalLabel(job.vertical, sport);
     const header = `${titleSubject}: ${verticalLabel} Fantasy Preview`;
 
     return {
@@ -266,7 +279,9 @@ export class ContentAgent implements SwarmAgent {
               title: 'Fantasy angle',
               content: job.vertical === 'pro_wrestling'
                 ? 'Focus on HP, BP, K, PM, FM volume patterns, winner selection, and match-format context.'
-                : 'Focus on matchup tendencies, finishing risk, fight pace, fantasy scoring categories, and contest strategy.',
+                : sport === 'boxing'
+                  ? 'Focus on boxing style, pace, round-by-round activity, knockdown risk, durability, and fantasy contest strategy.'
+                  : 'Focus on matchup tendencies, finishing risk, fight pace, fantasy scoring categories, and contest strategy.',
             },
           ],
         },

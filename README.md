@@ -115,3 +115,29 @@ This package includes the Phase 1 swarm-side foundation for the requested traffi
 - admin settings, logs, dashboard, failed-job retry, and notification automations
 
 See `PHASE1_AUTOMATION_EXPANSION.md` for event examples.
+
+
+## Campaign / All Agents API
+
+The swarm now supports grouped campaigns for the admin UI. Backend Phase 2 can call:
+
+```http
+GET  /internal/v1/campaigns/packs
+POST /internal/v1/campaigns
+GET  /internal/v1/campaigns
+GET  /internal/v1/campaigns/:campaignId
+```
+
+Recommended campaign types:
+
+- `fight_full_campaign`
+- `fight_tonight_campaign`
+- `boxing_fight_campaign`
+- `fight_result_campaign`
+- `pro_wrestling_match_campaign`
+- `blog_promotion_campaign`
+- `contest_promotion_campaign`
+
+Use `includeAll: true` for the client-facing “All Agents / All the Above” button. For Boxing, keep `vertical: "combat"` and pass `sport: "boxing"`.
+
+SEO artifacts now include an `applicationPlan`. The swarm generates the SEO package; backend/frontend approval applies it to live pages.

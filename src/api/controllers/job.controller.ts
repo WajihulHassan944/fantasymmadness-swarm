@@ -66,6 +66,8 @@ export function serializeJob(job: any): Record<string, unknown> {
     costEstimate: job.costEstimate,
     error: job.error,
     statusHistory: job.statusHistory,
+    campaignId: job.metadata?.campaignId,
+    campaignType: job.metadata?.campaignType,
     metadata: job.metadata,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,

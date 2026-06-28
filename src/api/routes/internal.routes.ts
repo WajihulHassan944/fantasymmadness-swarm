@@ -23,6 +23,12 @@ import {
   triggerAutomationEventHandler,
   updateAutomationSettingHandler,
 } from '../controllers/automation.controller.js';
+import {
+  createCampaignHandler,
+  getCampaignHandler,
+  listCampaignPacksHandler,
+  listCampaignsHandler,
+} from '../controllers/campaign.controller.js';
 
 export const internalRouter = Router();
 
@@ -49,6 +55,12 @@ internalRouter.post('/automations/events', asyncHandler(triggerAutomationEventHa
 internalRouter.get('/automations/:key', asyncHandler(getAutomationHandler));
 internalRouter.patch('/automations/:key/settings', asyncHandler(updateAutomationSettingHandler));
 internalRouter.post('/automations/:key/reset', asyncHandler(resetAutomationSettingHandler));
+
+
+internalRouter.get('/campaigns/packs', asyncHandler(listCampaignPacksHandler));
+internalRouter.post('/campaigns', asyncHandler(createCampaignHandler));
+internalRouter.get('/campaigns', asyncHandler(listCampaignsHandler));
+internalRouter.get('/campaigns/:campaignId', asyncHandler(getCampaignHandler));
 
 internalRouter.post('/jobs', asyncHandler(createJobHandler));
 internalRouter.get('/jobs', asyncHandler(listJobsHandler));

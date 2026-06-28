@@ -9,7 +9,8 @@ export class SeoAgent {
     async run(job) {
         const input = job.input || {};
         const targetUrl = getString(input, 'targetUrl');
-        const targetKeyword = getString(input, 'targetKeyword', this.defaultKeyword(job));
+        const sport = getString(input, 'sport', getString(input, 'discipline', job.vertical === 'pro_wrestling' ? 'pro_wrestling' : 'mma'));
+        const targetKeyword = getString(input, 'targetKeyword', this.defaultKeyword(job, sport));
         const pageTitle = getString(input, 'pageTitle', getString(input, 'title', 'FantasyMMAdness'));
         const secondaryKeywords = getStringArray(input, 'secondaryKeywords');
         const fallback = {
@@ -50,6 +51,7 @@ export class SeoAgent {
                 'Explain how the fantasy format works without changing official website rules.',
                 ...secondaryKeywords.map((keyword) => `Naturally include secondary keyword: ${keyword}`),
             ],
+            applicationPlan: this.applicationPlanFor(job.jobType),
         };
         const ai = getAiProvider();
         const aiResult = await ai.generateJson({
@@ -65,6 +67,7 @@ export class SeoAgent {
                 targetOutput: input.targetOutput,
                 suppliedPageInventory: input.pageInventory,
                 suppliedEntity: job.sourceEntity,
+                sport,
             }),
             schemaName: 'SeoAuditPayload',
             fallback,
@@ -79,7 +82,7 @@ export class SeoAgent {
                 title: `${this.titlePrefix(job.jobType)}: ${targetKeyword}`,
                 summary: aiResult.output.metaDescription,
                 reviewStatus: 'AWAITING_REVIEW',
-                payload: aiResult.output,
+                payload: { ...aiResult.output, applicationPlan: aiResult.output.applicationPlan || fallback.applicationPlan },
                 provenance: {
                     provider: aiResult.provider,
                     model: aiResult.model,
@@ -89,7 +92,14 @@ export class SeoAgent {
                     sources: [],
                 },
                 quality: { score: aiResult.warnings.length ? 76 : 90, warnings: aiResult.warnings },
-                metadata: { mode: job.mode, automationKey: input.automationKey },
+                metadata: {
+                    mode: job.mode,
+                    automationKey: input.automationKey,
+                    seoManagedBySwarm: true,
+                    seoAppliedDirectly: false,
+                    requiresBackendApply: true,
+                    sport,
+                },
             },
             tokenUsage: aiResult.tokenUsage,
             warnings: aiResult.warnings,
@@ -110,7 +120,11 @@ export class SeoAgent {
             return 'seo.technical-issue-report';
         return 'seo.audit-report';
     }
-    defaultKeyword(job) {
+    defaultKeyword(job, sport = 'mma') {
+        if (sport === 'boxing')
+            return 'boxing fantasy fight predictions';
+        if (sport === 'kickboxing')
+            return 'kickboxing fantasy fight predictions';
         if (job.jobType.includes('wrestler') || job.vertical === 'pro_wrestling')
             return 'pro wrestling fantasy predictions';
         if (job.jobType.includes('fighter'))
@@ -131,6 +145,27 @@ export class SeoAgent {
         if (jobType.includes('missing') || jobType.includes('broken') || jobType.includes('duplicate') || jobType.includes('canonical'))
             return 'SEO issue report';
         return 'SEO audit';
+    }
+    applicationPlanFor(jobType) {
+        const action = jobType.includes('sitemap')
+            ? 'queue_sitemap_refresh'
+            : jobType.includes('schema')
+                ? 'apply_schema_markup_after_admin_approval'
+                : jobType.includes('link')
+                    ? 'apply_internal_link_suggestions_after_admin_approval'
+                    : 'patch_page_seo_fields_after_admin_approval';
+        return {
+            managedBySwarm: true,
+            requiresBackendApply: true,
+            safeToAutoApply: false,
+            targetFields: ['metaTitle', 'metaDescription', 'openGraph', 'twitterCard', 'schemaMarkup', 'internalLinks'],
+            backendAction: action,
+            notes: [
+                'The swarm generates SEO packages and application instructions.',
+                'The backend/frontend must approve and apply changes to website pages.',
+                'This prevents automated SEO changes from silently modifying live content.',
+            ],
+        };
     }
     defaultSchema(job, pageTitle, targetKeyword) {
         const type = job.jobType.includes('faq') ? 'FAQPage' : job.jobType.includes('event') ? 'SportsEvent' : 'Article';

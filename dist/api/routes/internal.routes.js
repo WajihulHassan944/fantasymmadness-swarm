@@ -4,6 +4,7 @@ import { isMongoReady } from '../../db/connection.js';
 import { cancelJobHandler, createJobHandler, getJobHandler, listJobsHandler, retryJobHandler, } from '../controllers/job.controller.js';
 import { getArtifactHandler, listArtifactsHandler, reviewArtifactHandler, } from '../controllers/artifact.controller.js';
 import { automationDashboardHandler, bulkUpdateAutomationSettingsHandler, getAutomationHandler, listAutomationLogsHandler, listAutomationsHandler, resetAutomationSettingHandler, triggerAutomationEventHandler, updateAutomationSettingHandler, } from '../controllers/automation.controller.js';
+import { createCampaignHandler, getCampaignHandler, listCampaignPacksHandler, listCampaignsHandler, } from '../controllers/campaign.controller.js';
 export const internalRouter = Router();
 const asyncHandler = (handler) => (req, res, next) => handler(req, res, next).catch(next);
 internalRouter.get('/', (_req, res) => {
@@ -23,6 +24,10 @@ internalRouter.post('/automations/events', asyncHandler(triggerAutomationEventHa
 internalRouter.get('/automations/:key', asyncHandler(getAutomationHandler));
 internalRouter.patch('/automations/:key/settings', asyncHandler(updateAutomationSettingHandler));
 internalRouter.post('/automations/:key/reset', asyncHandler(resetAutomationSettingHandler));
+internalRouter.get('/campaigns/packs', asyncHandler(listCampaignPacksHandler));
+internalRouter.post('/campaigns', asyncHandler(createCampaignHandler));
+internalRouter.get('/campaigns', asyncHandler(listCampaignsHandler));
+internalRouter.get('/campaigns/:campaignId', asyncHandler(getCampaignHandler));
 internalRouter.post('/jobs', asyncHandler(createJobHandler));
 internalRouter.get('/jobs', asyncHandler(listJobsHandler));
 internalRouter.get('/jobs/:jobId', asyncHandler(getJobHandler));
