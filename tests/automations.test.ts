@@ -8,6 +8,8 @@ describe('automation registry', () => {
     expect(AUTOMATION_DEFINITIONS.length).toBeGreaterThanOrEqual(50);
     expect(automationsByTrigger('fight.published').map((item) => item.key)).toContain('fight.publish.blogDraft');
     expect(automationsByTrigger('blog.approved').map((item) => item.key)).toContain('blog.approved.twitterPost');
+    expect(automationsByTrigger('schedule.daily').map((item) => item.key)).toContain('seo.technicalFoundationAudit');
+    expect(automationsByTrigger('schedule.weekly').map((item) => item.key)).toContain('seo.paginationOpportunityReport');
   });
 
   it('maps every automation to a valid job type and registered agent', () => {

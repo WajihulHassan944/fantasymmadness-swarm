@@ -100,6 +100,51 @@ export class SchedulerService {
                 input: { topic: 'Daily keyword opportunities for fights, boxing, blogs, and contests', sport: 'combat' },
                 requestedBy: scheduledBy,
             });
+            await this.ensureScheduledJob({
+                key,
+                vertical: 'combat',
+                jobType: 'seo.technical-foundation-audit',
+                idempotencySuffix: 'seo:technical-foundation:public-site',
+                sourceLabel: 'Daily technical SEO foundation audit',
+                input: {
+                    topic: 'Daily technical SEO foundation audit for homepage, fights, blogs, fighters, wrestlers, videos, and guides',
+                    sport: 'combat',
+                    targetKeyword: 'fantasy combat sports contests',
+                    pageInventoryScope: ['homepage', 'upcoming fights', 'fight detail pages', 'fighter profiles', 'wrestler profiles', 'blogs', 'guides', 'leaderboards', 'videos'],
+                },
+                requestedBy: scheduledBy,
+                priority: 30,
+            });
+            await this.ensureScheduledJob({
+                key,
+                vertical: 'combat',
+                jobType: 'seo.sitemap-robots-audit',
+                idempotencySuffix: 'seo:sitemap-robots:public-site',
+                sourceLabel: 'Daily sitemap and robots audit',
+                input: { topic: 'Sitemap index, robots.txt, canonical, and crawl policy audit', sport: 'combat' },
+                requestedBy: scheduledBy,
+                priority: 30,
+            });
+            await this.ensureScheduledJob({
+                key,
+                vertical: 'combat',
+                jobType: 'seo.pagination-opportunity-report',
+                idempotencySuffix: 'seo:pagination-opportunities:public-site',
+                sourceLabel: 'Daily pagination opportunity report',
+                input: { topic: 'Pagination opportunities for fight lists, blogs, fighters, wrestlers, videos, leaderboards, and logs', sport: 'combat' },
+                requestedBy: scheduledBy,
+                priority: 28,
+            });
+            await this.ensureScheduledJob({
+                key,
+                vertical: 'combat',
+                jobType: 'seo.image-performance-audit',
+                idempotencySuffix: 'seo:image-performance:public-site',
+                sourceLabel: 'Daily image and public-page performance audit',
+                input: { topic: 'Image delivery, alt text, lazy loading, and public page performance recommendations', sport: 'combat' },
+                requestedBy: scheduledBy,
+                priority: 28,
+            });
         }
         if (env.SCHEDULED_FIGHT_CALENDAR_ENABLED) {
             await this.ensureScheduledJob({

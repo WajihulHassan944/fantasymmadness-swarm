@@ -160,7 +160,7 @@ export class ContentAgent implements SwarmAgent {
     if (jobType === 'content.blog-topic-suggestions' || jobType === 'content.user-dashboard-opportunities') return 'content.topic-suggestions';
     if (jobType === 'content.faq') return 'content.faq-draft';
     if (jobType === 'content.how-to-play') return 'content.how-to-play-draft';
-    if (jobType === 'content.landing-page-suggestion') return 'content.landing-page-suggestion';
+    if (jobType === 'content.landing-page-suggestion' || jobType === 'content.sport-landing-page-brief' || jobType === 'content.fight-detail-page-brief' || jobType === 'content.fighter-profile-page-brief') return 'content.landing-page-suggestion';
     return 'content.article-draft';
   }
 
@@ -177,6 +177,9 @@ export class ContentAgent implements SwarmAgent {
       'content.landing-page-suggestion',
       'content.old-blog-update-suggestion',
       'content.fighter-update-suggestion',
+      'content.sport-landing-page-brief',
+      'content.fight-detail-page-brief',
+      'content.fighter-profile-page-brief',
     ].includes(jobType);
   }
 
@@ -231,7 +234,9 @@ export class ContentAgent implements SwarmAgent {
     if (jobType === 'content.homepage-feature') return `Homepage feature copy: ${topic}`;
     if (jobType === 'content.faq') return `FAQ draft: ${topic}`;
     if (jobType === 'content.how-to-play') return `How-to-play content: ${topic}`;
-    if (jobType === 'content.landing-page-suggestion') return `Landing page suggestion: ${topic}`;
+    if (jobType === 'content.landing-page-suggestion' || jobType === 'content.sport-landing-page-brief') return `Sport landing page brief: ${topic}`;
+    if (jobType === 'content.fight-detail-page-brief') return `Fight detail page brief: ${topic}`;
+    if (jobType === 'content.fighter-profile-page-brief') return `Fighter/wrestler profile page brief: ${topic}`;
     return `Content update suggestion: ${topic}`;
   }
 
@@ -243,7 +248,9 @@ export class ContentAgent implements SwarmAgent {
     if (jobType === 'content.homepage-feature') return 'homepage_feature';
     if (jobType === 'content.faq') return 'faq';
     if (jobType === 'content.how-to-play') return 'how_to_play';
-    if (jobType === 'content.landing-page-suggestion') return 'landing_page';
+    if (jobType === 'content.landing-page-suggestion' || jobType === 'content.sport-landing-page-brief') return 'sport_landing_page';
+    if (jobType === 'content.fight-detail-page-brief') return 'fight_detail_page';
+    if (jobType === 'content.fighter-profile-page-brief') return 'profile_page';
     return 'content_update';
   }
 

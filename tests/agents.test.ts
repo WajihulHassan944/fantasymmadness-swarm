@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ContentAgent } from '../src/agents/content.agent.js';
 import { WrestlingAgent } from '../src/agents/wrestling.agent.js';
+import { SeoAgent } from '../src/agents/seo.agent.js';
 
 const baseJob: any = {
   jobId: 'job_test',
@@ -15,6 +16,17 @@ describe('agents', () => {
     const result = await new ContentAgent().run(baseJob);
     expect(result.artifact.artifactType).toBe('content.article-draft');
     expect(result.artifact.payload.sections).toBeTruthy();
+  });
+
+  it('seo agent creates a technical foundation roadmap', async () => {
+    const result = await new SeoAgent().run({
+      ...baseJob,
+      jobType: 'seo.technical-foundation-audit',
+      input: { targetKeyword: 'fantasy combat sports contests', pageTitle: 'FantasyMMAdness' },
+    });
+    expect(result.artifact.artifactType).toBe('seo.technical-issue-report');
+    expect((result.artifact.payload as any).technicalSeoRoadmap?.length).toBeGreaterThan(0);
+    expect((result.artifact.payload as any).nextPhaseImplementationPlan?.backendRequirements?.length).toBeGreaterThan(0);
   });
 
   it('wrestling agent creates scorecard suggestions', async () => {

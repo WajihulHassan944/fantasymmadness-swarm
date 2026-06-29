@@ -95,6 +95,21 @@ export const jobTypeValues = [
   'content.user-dashboard-opportunities',
   'analytics.user-growth-1000-plan',
   'seo.competitor-gap-report',
+  'seo.technical-foundation-audit',
+  'seo.sitemap-robots-audit',
+  'seo.pagination-opportunity-report',
+  'seo.image-performance-audit',
+  'seo.core-web-vitals-plan',
+  'seo.landing-page-roadmap',
+  'seo.fight-detail-seo-roadmap',
+  'seo.fighter-profile-seo-roadmap',
+  'seo.blog-architecture-audit',
+  'seo.footer-internal-link-audit',
+  'seo.conversion-cta-audit',
+  'seo.trust-compliance-content-plan',
+  'content.sport-landing-page-brief',
+  'content.fight-detail-page-brief',
+  'content.fighter-profile-page-brief',
 ] as const;
 
 export const jobTypeSchema = z.enum(jobTypeValues);
