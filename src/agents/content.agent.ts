@@ -157,7 +157,7 @@ export class ContentAgent implements SwarmAgent {
     if (jobType === 'content.homepage-feature') return 'content.homepage-feature';
     if (jobType.includes('update-suggestion')) return 'content.content-update-suggestion';
     if (jobType === 'content.calendar') return 'content.calendar-plan';
-    if (jobType === 'content.blog-topic-suggestions') return 'content.topic-suggestions';
+    if (jobType === 'content.blog-topic-suggestions' || jobType === 'content.user-dashboard-opportunities') return 'content.topic-suggestions';
     if (jobType === 'content.faq') return 'content.faq-draft';
     if (jobType === 'content.how-to-play') return 'content.how-to-play-draft';
     if (jobType === 'content.landing-page-suggestion') return 'content.landing-page-suggestion';
@@ -168,6 +168,7 @@ export class ContentAgent implements SwarmAgent {
     return [
       'content.calendar',
       'content.blog-topic-suggestions',
+      'content.user-dashboard-opportunities',
       'content.newsletter-draft',
       'content.blog-newsletter-draft',
       'content.homepage-feature',
@@ -225,6 +226,7 @@ export class ContentAgent implements SwarmAgent {
   private planTitle(jobType: JobType, topic: string): string {
     if (jobType === 'content.calendar') return `Content calendar: ${topic}`;
     if (jobType === 'content.blog-topic-suggestions') return `Blog topic suggestions: ${topic}`;
+    if (jobType === 'content.user-dashboard-opportunities') return `User dashboard opportunities: ${topic}`;
     if (jobType.includes('newsletter')) return `Newsletter draft: ${topic}`;
     if (jobType === 'content.homepage-feature') return `Homepage feature copy: ${topic}`;
     if (jobType === 'content.faq') return `FAQ draft: ${topic}`;
@@ -236,6 +238,7 @@ export class ContentAgent implements SwarmAgent {
   private contentTypeFor(jobType: JobType): string {
     if (jobType === 'content.calendar') return 'content_calendar';
     if (jobType === 'content.blog-topic-suggestions') return 'topic_suggestion';
+    if (jobType === 'content.user-dashboard-opportunities') return 'dashboard_opportunity';
     if (jobType.includes('newsletter')) return 'newsletter';
     if (jobType === 'content.homepage-feature') return 'homepage_feature';
     if (jobType === 'content.faq') return 'faq';

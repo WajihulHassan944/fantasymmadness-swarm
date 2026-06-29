@@ -5,11 +5,13 @@ import { getAiProvider } from '../providers/ai/index.js';
 import type { AgentExecutionResult, SwarmAgent } from './base.js';
 import { getString, getStringArray } from './base.js';
 
+type SocialPlatform = 'x' | 'instagram' | 'facebook' | 'discord' | 'youtube';
+
 interface SocialDraftPayload extends Record<string, unknown> {
   campaignName: string;
   publishMode: 'draft_only' | 'approval_required' | 'automation_ready';
   posts: Array<{
-    platform: 'x' | 'instagram' | 'facebook' | 'discord' | 'youtube';
+    platform: SocialPlatform;
     text: string;
     hashtags: string[];
     mediaSuggestion?: string;
@@ -20,6 +22,7 @@ interface SocialDraftPayload extends Record<string, unknown> {
     canAutoPublish: boolean;
     reason: string;
     configuredPlatforms: string[];
+    platformReadiness: Array<{ platform: SocialPlatform; configured: boolean; missing: string[] }>;
   };
 }
 
@@ -37,15 +40,16 @@ export class SocialAgent implements SwarmAgent {
     const campaignName = getString(input, 'campaignName', this.defaultCampaignName(job, sport));
     const topic = getString(input, 'topic', getString(input, 'title', campaignName));
     const platforms = getStringArray(input, 'platforms');
-    const targetPlatforms = platforms.length ? platforms : this.defaultPlatforms(job.jobType);
+    const targetPlatforms = this.normalizePlatforms(platforms.length ? platforms : this.defaultPlatforms(job.jobType));
     const hashtags = getStringArray(input, 'hashtags');
-    const canAutoPublish = job.mode === 'AUTOMATED' && env.SWARM_SOCIAL_PUBLISH_ENABLED && this.hasTwitterCredentials(targetPlatforms);
+    const platformReadiness = targetPlatforms.map((platform) => this.platformReadiness(platform));
+    const canAutoPublish = job.mode === 'AUTOMATED' && env.SWARM_SOCIAL_PUBLISH_ENABLED && platformReadiness.length > 0 && platformReadiness.every((item) => item.configured);
 
     const fallback: SocialDraftPayload = {
       campaignName,
       publishMode: canAutoPublish ? 'automation_ready' : job.mode === 'APPROVAL_REQUIRED' ? 'approval_required' : 'draft_only',
       posts: targetPlatforms.map((platform) => ({
-        platform: platform as 'x' | 'instagram' | 'facebook' | 'discord' | 'youtube',
+        platform,
         text: this.defaultPostText(job.jobType, topic),
         hashtags: [...new Set(['FantasyMMAdness', this.defaultSportHashtag(job.vertical, sport), ...hashtags])],
         mediaSuggestion: 'Use approved event, fighter, wrestler, contest, or blog artwork from the existing website asset workflow.',
@@ -58,16 +62,17 @@ export class SocialAgent implements SwarmAgent {
       publicationReadiness: {
         canAutoPublish,
         reason: canAutoPublish
-          ? 'Job requested AUTOMATED mode and X/Twitter credentials are configured.'
-          : 'Current Phase 1 output is a draft artifact; backend/admin approval should publish later.',
+          ? 'Job requested AUTOMATED mode, social publishing flag is enabled, and all selected platform credentials are configured.'
+          : 'Current Phase 1 output is a draft artifact; backend/admin approval should publish later. Live posting needs platform credentials and backend approval controls.',
         configuredPlatforms: this.configuredPlatforms(),
+        platformReadiness,
       },
     };
 
     const ai = getAiProvider();
     const aiResult = await ai.generateJson<SocialDraftPayload>({
       system: 'You create safe social-media drafts for FantasyMMAdness. Avoid unsupported odds, guarantees, financial claims, or unverified results. Return JSON only. Keep posts concise and platform-ready.',
-      user: JSON.stringify({ vertical: job.vertical, jobType: job.jobType, sport, campaignName, topic, platforms: targetPlatforms, hashtags, automationKey: input.automationKey, campaignId: input.campaignId, targetOutput: input.targetOutput }),
+      user: JSON.stringify({ vertical: job.vertical, jobType: job.jobType, sport, campaignName, topic, platforms: targetPlatforms, hashtags, automationKey: input.automationKey, campaignId: input.campaignId, campaignType: input.campaignType, targetOutput: input.targetOutput, postingGoal: input.postingGoal || 'traffic growth and repeat user engagement' }),
       schemaName: 'SocialDraftPayload',
       fallback,
       temperature: 0.7,
@@ -134,7 +139,10 @@ export class SocialAgent implements SwarmAgent {
   private defaultPlatforms(jobType: JobType): string[] {
     if (jobType.includes('discord')) return ['discord'];
     if (jobType.includes('youtube')) return ['youtube', 'x'];
-    return ['x'];
+    if (jobType.includes('instagram')) return ['instagram'];
+    if (jobType.includes('facebook')) return ['facebook'];
+    if (jobType.includes('multi-platform') || jobType.includes('promotional') || jobType.includes('campaign')) return env.SOCIAL_DEFAULT_PLATFORMS;
+    return env.SOCIAL_DEFAULT_PLATFORMS.length ? env.SOCIAL_DEFAULT_PLATFORMS : ['x'];
   }
 
   private defaultPostText(jobType: JobType, topic: string): string {
@@ -151,14 +159,34 @@ export class SocialAgent implements SwarmAgent {
     return 'Join or review the latest FantasyMMAdness contests.';
   }
 
-  private hasTwitterCredentials(platforms: string[]): boolean {
-    if (!platforms.includes('x')) return false;
-    return Boolean(env.TWITTER_API_KEY && env.TWITTER_API_SECRET && env.TWITTER_ACCESS_TOKEN && env.TWITTER_ACCESS_SECRET);
+  private normalizePlatforms(platforms: string[]): SocialPlatform[] {
+    const allowed: SocialPlatform[] = ['x', 'instagram', 'facebook', 'discord', 'youtube'];
+    return [...new Set(platforms.map((platform) => platform.toLowerCase().trim()).filter((platform): platform is SocialPlatform => allowed.includes(platform as SocialPlatform)))];
+  }
+
+  private platformReadiness(platform: SocialPlatform): { platform: SocialPlatform; configured: boolean; missing: string[] } {
+    const missing: string[] = [];
+    if (platform === 'x') {
+      if (!env.TWITTER_API_KEY) missing.push('TWITTER_API_KEY');
+      if (!env.TWITTER_API_SECRET) missing.push('TWITTER_API_SECRET');
+      if (!env.TWITTER_ACCESS_TOKEN) missing.push('TWITTER_ACCESS_TOKEN');
+      if (!env.TWITTER_ACCESS_SECRET) missing.push('TWITTER_ACCESS_SECRET');
+    }
+    if (platform === 'facebook') {
+      if (!env.FACEBOOK_PAGE_ID) missing.push('FACEBOOK_PAGE_ID');
+      if (!env.FACEBOOK_PAGE_ACCESS_TOKEN) missing.push('FACEBOOK_PAGE_ACCESS_TOKEN');
+    }
+    if (platform === 'instagram') {
+      if (!env.INSTAGRAM_BUSINESS_ACCOUNT_ID) missing.push('INSTAGRAM_BUSINESS_ACCOUNT_ID');
+      if (!env.INSTAGRAM_ACCESS_TOKEN && !env.FACEBOOK_PAGE_ACCESS_TOKEN) missing.push('INSTAGRAM_ACCESS_TOKEN or FACEBOOK_PAGE_ACCESS_TOKEN');
+    }
+    if (platform === 'discord') missing.push('DISCORD_WEBHOOK_URL');
+    if (platform === 'youtube') missing.push('YOUTUBE_CHANNEL_ID / YouTube API credentials');
+    return { platform, configured: missing.length === 0, missing };
   }
 
   private configuredPlatforms(): string[] {
-    const platforms: string[] = [];
-    if (this.hasTwitterCredentials(['x'])) platforms.push('x');
-    return platforms;
+    return this.normalizePlatforms(['x', 'instagram', 'facebook', 'discord', 'youtube'])
+      .filter((platform) => this.platformReadiness(platform).configured);
   }
 }

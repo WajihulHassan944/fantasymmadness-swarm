@@ -25,6 +25,7 @@ export const artifactTypeValues = [
     'social.calendar-plan',
     'data.external-candidate',
     'data.trend-report',
+    'data.calendar-refresh-plan',
     'wrestling.scorecard-suggestion',
     'wrestling.match-analysis',
     'wrestling.wrestler-profile',

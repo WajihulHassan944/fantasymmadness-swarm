@@ -138,7 +138,7 @@ export class ContentAgent {
             return 'content.content-update-suggestion';
         if (jobType === 'content.calendar')
             return 'content.calendar-plan';
-        if (jobType === 'content.blog-topic-suggestions')
+        if (jobType === 'content.blog-topic-suggestions' || jobType === 'content.user-dashboard-opportunities')
             return 'content.topic-suggestions';
         if (jobType === 'content.faq')
             return 'content.faq-draft';
@@ -152,6 +152,7 @@ export class ContentAgent {
         return [
             'content.calendar',
             'content.blog-topic-suggestions',
+            'content.user-dashboard-opportunities',
             'content.newsletter-draft',
             'content.blog-newsletter-draft',
             'content.homepage-feature',
@@ -211,6 +212,8 @@ export class ContentAgent {
             return `Content calendar: ${topic}`;
         if (jobType === 'content.blog-topic-suggestions')
             return `Blog topic suggestions: ${topic}`;
+        if (jobType === 'content.user-dashboard-opportunities')
+            return `User dashboard opportunities: ${topic}`;
         if (jobType.includes('newsletter'))
             return `Newsletter draft: ${topic}`;
         if (jobType === 'content.homepage-feature')
@@ -228,6 +231,8 @@ export class ContentAgent {
             return 'content_calendar';
         if (jobType === 'content.blog-topic-suggestions')
             return 'topic_suggestion';
+        if (jobType === 'content.user-dashboard-opportunities')
+            return 'dashboard_opportunity';
         if (jobType.includes('newsletter'))
             return 'newsletter';
         if (jobType === 'content.homepage-feature')

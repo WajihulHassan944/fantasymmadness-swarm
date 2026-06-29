@@ -48,6 +48,13 @@ const envSchema = z.object({
     JOB_RETRY_BASE_DELAY_MS: numberFromEnv(30_000),
     SCHEDULER_ENABLED: booleanFromEnv(false),
     SCHEDULED_INTERVAL_MS: numberFromEnv(3_600_000),
+    SCHEDULED_DAILY_SEO_ENABLED: booleanFromEnv(true),
+    SCHEDULED_FIGHT_CALENDAR_ENABLED: booleanFromEnv(true),
+    SCHEDULED_DAILY_SOCIAL_ENABLED: booleanFromEnv(true),
+    SCHEDULED_DAILY_CONTENT_ENABLED: booleanFromEnv(true),
+    SCHEDULED_SOCIAL_DRAFTS_PER_DAY: numberFromEnv(3),
+    SCHEDULED_GROWTH_PLAN_ENABLED: booleanFromEnv(true),
+    SOCIAL_DEFAULT_PLATFORMS: z.string().default('x,instagram,facebook'),
     OPENAI_API_KEY: optionalString,
     OPENAI_MODEL: z.string().default('gpt-4o-mini'),
     OPENAI_DISABLED: booleanFromEnv(false),
@@ -64,6 +71,13 @@ const envSchema = z.object({
     TWITTER_API_SECRET: optionalString,
     TWITTER_ACCESS_TOKEN: optionalString,
     TWITTER_ACCESS_SECRET: optionalString,
+    META_GRAPH_API_VERSION: z.string().default('v21.0'),
+    META_APP_ID: optionalString,
+    META_APP_SECRET: optionalString,
+    FACEBOOK_PAGE_ID: optionalString,
+    FACEBOOK_PAGE_ACCESS_TOKEN: optionalString,
+    INSTAGRAM_BUSINESS_ACCOUNT_ID: optionalString,
+    INSTAGRAM_ACCESS_TOKEN: optionalString,
 });
 const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
@@ -83,4 +97,5 @@ if (parsed.data.NODE_ENV === 'production') {
 export const env = {
     ...parsed.data,
     CORS_ORIGINS: parsed.data.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean),
+    SOCIAL_DEFAULT_PLATFORMS: parsed.data.SOCIAL_DEFAULT_PLATFORMS.split(',').map((platform) => platform.trim().toLowerCase()).filter(Boolean),
 };

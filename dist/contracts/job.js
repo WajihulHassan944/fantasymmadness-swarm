@@ -85,6 +85,12 @@ export const jobTypeValues = [
     'social.discord-announcement-draft',
     'notification.traffic-issues',
     'notification.failed-automations',
+    'social.instagram-post-draft',
+    'social.facebook-post-draft',
+    'social.multi-platform-daily-posts',
+    'data.fight-calendar-refresh',
+    'content.user-dashboard-opportunities',
+    'analytics.user-growth-1000-plan',
     'seo.competitor-gap-report',
 ];
 export const jobTypeSchema = z.enum(jobTypeValues);

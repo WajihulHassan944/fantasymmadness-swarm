@@ -6,10 +6,67 @@ export class DataCandidateAgent {
         return jobType.startsWith('data.');
     }
     async run(job) {
+        if (job.jobType === 'data.fight-calendar-refresh') {
+            return this.calendarRefreshPlan(job);
+        }
         if (job.jobType === 'data.trending-mma-topics' || job.jobType === 'data.trending-wrestling-topics') {
             return this.trendReport(job);
         }
         return this.externalCandidate(job);
+    }
+    async calendarRefreshPlan(job) {
+        const input = job.input || {};
+        const sport = getString(input, 'sport', getString(input, 'discipline', job.vertical === 'pro_wrestling' ? 'pro_wrestling' : 'mma'));
+        const sourceName = getString(input, 'sourceName', 'backend-fight-schedule');
+        const scheduleItems = Array.isArray(input.scheduleItems) ? input.scheduleItems : [];
+        return {
+            artifact: {
+                jobId: job.jobId,
+                vertical: job.vertical,
+                jobType: job.jobType,
+                artifactType: 'data.calendar-refresh-plan',
+                title: `${this.sportLabel(sport)} fight calendar refresh plan`,
+                summary: 'Reviewable plan for keeping public fight calendars, upcoming fights, and dashboard opportunities fresh.',
+                reviewStatus: 'AWAITING_REVIEW',
+                payload: {
+                    sourceName,
+                    sport,
+                    scheduleItemsSeen: scheduleItems.length,
+                    refreshTargets: [
+                        'public fight calendar',
+                        'homepage fight-night/latest fight modules',
+                        'user dashboard fight opportunities',
+                        'upcoming fights carousel/listing',
+                    ],
+                    orderingRules: [
+                        'featured fights first',
+                        'live and tonight fights before older fights',
+                        'recently added or recently completed fights stay visible',
+                        'completed stale fights move below active opportunities',
+                    ],
+                    backendApplyPlan: {
+                        action: 'backend_refresh_fight_schedule_cache_or_priority_fields',
+                        requiresBackendValidation: true,
+                        safeToAutoApply: false,
+                        notes: [
+                            'Swarm creates the refresh plan and candidate priorities.',
+                            'Backend remains responsible for actual fight visibility and sorting updates.',
+                            'Frontend should read the backend-sorted fight list instead of static/test content.',
+                        ],
+                    },
+                },
+                provenance: {
+                    provider: 'internal-calendar-planner',
+                    model: 'rules-v1',
+                    promptVersion: 'calendar-refresh-v1',
+                    agentVersion: this.version,
+                    generatedAt: new Date(),
+                    sources: [],
+                },
+                quality: { score: 82, warnings: [] },
+                metadata: { mode: job.mode, automationKey: input.automationKey, sport },
+            },
+        };
     }
     async trendReport(job) {
         const input = job.input || {};
@@ -103,6 +160,15 @@ export class DataCandidateAgent {
                 },
             },
         };
+    }
+    sportLabel(sport) {
+        if (sport === 'boxing')
+            return 'Boxing';
+        if (sport === 'kickboxing')
+            return 'Kickboxing';
+        if (sport === 'pro_wrestling')
+            return 'Pro Wrestling';
+        return 'MMA/combat';
     }
     normalize(job, rawRecord) {
         if (job.vertical === 'pro_wrestling') {

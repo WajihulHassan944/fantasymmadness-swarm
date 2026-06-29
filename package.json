@@ -1,8 +1,8 @@
 {
   "name": "fantasymmadness-centralized-swarm",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
-  "description": "Centralized Phase 1 automation swarm for FantasyMMAdness combat, pro-wrestling, SEO, social, and traffic-growth workflows.",
+  "description": "Centralized Phase 1 automation swarm for FantasyMMAdness combat, pro-wrestling, daily SEO, social, calendar, and growth workflows.",
   "type": "module",
   "engines": {
     "node": ">=20.11.0"

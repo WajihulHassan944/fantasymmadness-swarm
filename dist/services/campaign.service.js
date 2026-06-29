@@ -9,6 +9,9 @@ import { isoDateKey } from '../utils/time.js';
 const FIGHT_PUBLISH_KEYS = [
     'fight.publish.blogDraft',
     'fight.publish.twitterPost',
+    'social.dailyMultiPlatformPosts',
+    'social.instagramDailyPostDraft',
+    'social.facebookDailyPostDraft',
     'fight.publish.seoMetadata',
     'fight.publish.schemaMarkup',
     'fight.publish.sitemapRefresh',
@@ -21,6 +24,9 @@ const TONIGHT_EXTRA_KEYS = [
     'blog.approved.imagePrompt',
     'seo.openGraphTwitterCards',
     'seo.fightEventStructuredData',
+    'schedule.fightCalendarRefresh',
+    'dashboard.userFightOpportunities',
+    'analytics.userGrowth1000Plan',
 ];
 const CAMPAIGN_PACKS = [
     {
@@ -29,7 +35,7 @@ const CAMPAIGN_PACKS = [
         description: 'Run all safe content, SEO, social, media, newsletter, and promotion agents for one fight.',
         defaultVertical: 'combat',
         defaultSport: 'mma',
-        defaultSections: ['content', 'seo', 'social', 'media'],
+        defaultSections: ['content', 'seo', 'social', 'media', 'data'],
         automationKeys: [...FIGHT_PUBLISH_KEYS, ...TONIGHT_EXTRA_KEYS],
     },
     {
@@ -38,7 +44,7 @@ const CAMPAIGN_PACKS = [
         description: 'Create same-day promotional blog, social, SEO, homepage, newsletter, and image-prompt artifacts.',
         defaultVertical: 'combat',
         defaultSport: 'mma',
-        defaultSections: ['content', 'seo', 'social', 'media'],
+        defaultSections: ['content', 'seo', 'social', 'media', 'data'],
         automationKeys: [...FIGHT_PUBLISH_KEYS, ...TONIGHT_EXTRA_KEYS],
     },
     {
@@ -47,7 +53,7 @@ const CAMPAIGN_PACKS = [
         description: 'Run the combat automation pack but with boxing-specific prompts, keywords, social copy, and SEO context.',
         defaultVertical: 'combat',
         defaultSport: 'boxing',
-        defaultSections: ['content', 'seo', 'social', 'media'],
+        defaultSections: ['content', 'seo', 'social', 'media', 'data'],
         automationKeys: [...FIGHT_PUBLISH_KEYS, ...TONIGHT_EXTRA_KEYS],
     },
     {
