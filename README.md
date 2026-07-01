@@ -141,3 +141,40 @@ Recommended campaign types:
 Use `includeAll: true` for the client-facing “All Agents / All the Above” button. For Boxing, keep `vertical: "combat"` and pass `sport: "boxing"`.
 
 SEO artifacts now include an `applicationPlan`. The swarm generates the SEO package; backend/frontend approval applies it to live pages.
+
+## July 10,000 Signup Growth System
+
+This package now includes a safe draft/approval-first growth campaign pack:
+
+```http
+POST /internal/v1/campaigns
+```
+
+Use `campaignType: "july_10000_signup_growth_system"` to create grouped draft artifacts for:
+
+- Event Calendar Agent
+- Fight Card Agent
+- Instagram Agent
+- Facebook Agent
+- X Agent
+- Blog & SEO Agent
+- YouTube Growth Agent
+- Short Form Video Agent
+- Community & Retention Agent
+
+The swarm does not publish directly by default. Keep these safe defaults until backend/admin approval flow is implemented:
+
+```env
+SWARM_SOCIAL_PUBLISH_ENABLED=false
+YOUTUBE_UPLOAD_ENABLED=false
+SWARM_AUTO_PUBLISH_ENABLED=false
+SWARM_AUTO_IMPORT_ENABLED=false
+```
+
+Every generated social/video visual brief requires a small Fantasy MMadness logo overlay. Set `BRAND_LOGO_URL` in `.env` before generating final artwork.
+
+Every YouTube video draft ends with:
+
+```text
+Make your picks on Fantasy MMadness before the event starts.
+```

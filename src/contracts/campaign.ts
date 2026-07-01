@@ -9,6 +9,7 @@ export const campaignTypeValues = [
   'pro_wrestling_match_campaign',
   'blog_promotion_campaign',
   'contest_promotion_campaign',
+  'july_10000_signup_growth_system',
   'custom_campaign',
 ] as const;
 

@@ -1,3 +1,4 @@
+import { env } from '../config/env.js';
 import { websiteBlogDraftSchema } from '../contracts/domain.js';
 import { getAiProvider } from '../providers/ai/index.js';
 import { slugify } from '../utils/slug.js';
@@ -136,9 +137,9 @@ export class ContentAgent {
             return 'content.homepage-feature';
         if (jobType.includes('update-suggestion'))
             return 'content.content-update-suggestion';
-        if (jobType === 'content.calendar')
+        if (jobType === 'content.calendar' || jobType === 'content.fight-card-daily-package')
             return 'content.calendar-plan';
-        if (jobType === 'content.blog-topic-suggestions' || jobType === 'content.user-dashboard-opportunities')
+        if (jobType === 'content.blog-topic-suggestions' || jobType === 'content.user-dashboard-opportunities' || jobType === 'content.blog-seo-daily-articles')
             return 'content.topic-suggestions';
         if (jobType === 'content.faq')
             return 'content.faq-draft';
@@ -164,6 +165,8 @@ export class ContentAgent {
             'content.sport-landing-page-brief',
             'content.fight-detail-page-brief',
             'content.fighter-profile-page-brief',
+            'content.fight-card-daily-package',
+            'content.blog-seo-daily-articles',
         ].includes(jobType);
     }
     mapsToBackendModel(jobType, vertical) {
@@ -183,6 +186,10 @@ export class ContentAgent {
             : 'Fantasy combat sports prediction strategy';
     }
     buildPlanFallback(job, topic) {
+        if (job.jobType === 'content.fight-card-daily-package')
+            return this.buildFightCardDailyPackage(job, topic);
+        if (job.jobType === 'content.blog-seo-daily-articles')
+            return this.buildBlogSeoDailyPackage(job, topic);
         const title = this.planTitle(job.jobType, topic);
         return {
             title,
@@ -210,6 +217,71 @@ export class ContentAgent {
             ],
         };
     }
+    buildFightCardDailyPackage(job, topic) {
+        return {
+            title: `Daily fight-card growth package: ${topic}`,
+            summary: 'Reviewable fight-card package for event landing pages, prediction cards, community percentages, rankings, and league participation modules.',
+            items: [
+                {
+                    title: 'Event landing page update',
+                    contentType: 'event_landing_page',
+                    priority: 'high',
+                    recommendedJobType: 'content.upcoming-event-preview',
+                    backendTarget: 'Event/Fight page draft',
+                    notes: 'Create or refresh event page copy using verified fighter names, deadlines, poster, and active prediction CTA.',
+                    callToAction: 'Make your picks on Fantasy MMadness before the event starts.',
+                },
+                {
+                    title: 'Prediction cards and community percentage module',
+                    contentType: 'prediction_card',
+                    priority: 'high',
+                    recommendedJobType: 'content.homepage-feature',
+                    backendTarget: 'Homepage + fight detail prediction modules',
+                    notes: 'Use backend-supplied community percentages only; never invent percentages inside swarm.',
+                },
+                {
+                    title: 'Rankings and league participation angle',
+                    contentType: 'leaderboard_feature',
+                    priority: 'medium',
+                    recommendedJobType: 'analytics.leaderboard-summary',
+                    backendTarget: 'Leaderboard/league module copy',
+                    notes: 'Surface participation and leaderboard hooks without changing scoring, wallet, or contest rules.',
+                },
+            ],
+            publishingNotes: [
+                'Backend remains the source of truth for fight data, community percentages, rankings, deadlines, and league state.',
+                'Swarm output is draft-only until admin/backend approval.',
+            ],
+        };
+    }
+    buildBlogSeoDailyPackage(job, topic) {
+        const count = Math.max(2, Math.min(4, env.GROWTH_DAILY_BLOGS));
+        const baseTitles = [
+            `Fight preview: ${topic}`,
+            `Prediction strategy: ${topic}`,
+            `Rankings angle: ${topic}`,
+            `Results and recap angle: ${topic}`,
+        ];
+        return {
+            title: `Daily blog and SEO article package: ${topic}`,
+            summary: `Draft ${count} reviewable blog/article briefs for search discovery, prediction intent, and signup conversion.`,
+            items: baseTitles.slice(0, count).map((title, index) => ({
+                title,
+                contentType: 'blog_article_brief',
+                targetKeyword: index === 0 ? 'fight predictions' : index === 1 ? 'fantasy fight picks' : index === 2 ? 'combat sports rankings' : 'fight results recap',
+                priority: index < 2 ? 'high' : 'medium',
+                recommendedJobType: index === 3 ? 'content.fight-result-recap' : 'content.article',
+                scheduledSlot: index < 2 ? 'morning/afternoon' : 'evening/post-event',
+                featuredImagePrompt: `Create a safe Fantasy MMadness branded combat-sports graphic for "${title}" with no unlicensed logos and a small brand logo in the ${env.BRAND_LOGO_CORNER} corner.`,
+                callToAction: 'Make your picks on Fantasy MMadness before the event starts.',
+                notes: 'Use verified event/fighter data supplied by backend. Do not invent odds, results, payouts, or official rankings.',
+            })),
+            publishingNotes: [
+                'Every blog should include a featured image prompt or selected approved fighter/event artwork.',
+                'Admin/backend approval is required before publishing blogs or images.',
+            ],
+        };
+    }
     planTitle(jobType, topic) {
         if (jobType === 'content.calendar')
             return `Content calendar: ${topic}`;
@@ -231,6 +303,10 @@ export class ContentAgent {
             return `Fight detail page brief: ${topic}`;
         if (jobType === 'content.fighter-profile-page-brief')
             return `Fighter/wrestler profile page brief: ${topic}`;
+        if (jobType === 'content.fight-card-daily-package')
+            return `Fight-card daily package: ${topic}`;
+        if (jobType === 'content.blog-seo-daily-articles')
+            return `Daily blog/SEO article package: ${topic}`;
         return `Content update suggestion: ${topic}`;
     }
     contentTypeFor(jobType) {
@@ -254,6 +330,10 @@ export class ContentAgent {
             return 'fight_detail_page';
         if (jobType === 'content.fighter-profile-page-brief')
             return 'profile_page';
+        if (jobType === 'content.fight-card-daily-package')
+            return 'fight_card_daily_package';
+        if (jobType === 'content.blog-seo-daily-articles')
+            return 'blog_seo_daily_articles';
         return 'content_update';
     }
     verticalLabel(vertical, sport = 'mma') {

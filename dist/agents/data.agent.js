@@ -6,6 +6,9 @@ export class DataCandidateAgent {
         return jobType.startsWith('data.');
     }
     async run(job) {
+        if (job.jobType === 'data.event-calendar-daily-update') {
+            return this.eventCalendarDailyUpdate(job);
+        }
         if (job.jobType === 'data.fight-calendar-refresh') {
             return this.calendarRefreshPlan(job);
         }
@@ -13,6 +16,61 @@ export class DataCandidateAgent {
             return this.trendReport(job);
         }
         return this.externalCandidate(job);
+    }
+    async eventCalendarDailyUpdate(job) {
+        const input = job.input || {};
+        const sport = getString(input, 'sport', getString(input, 'discipline', job.vertical === 'pro_wrestling' ? 'pro_wrestling' : 'mma'));
+        const sourceName = getString(input, 'sourceName', 'backend-event-calendar');
+        const events = Array.isArray(input.events) ? input.events : Array.isArray(input.scheduleItems) ? input.scheduleItems : [];
+        const eventCards = events.slice(0, 12).map((item, index) => this.calendarCard(item, index));
+        return {
+            artifact: {
+                jobId: job.jobId,
+                vertical: job.vertical,
+                jobType: job.jobType,
+                artifactType: 'data.calendar-refresh-plan',
+                title: `${this.sportLabel(sport)} event calendar daily update`,
+                summary: 'Safe calendar artifact for upcoming events, poster requirements, countdowns, prediction deadlines, and results review.',
+                reviewStatus: 'AWAITING_REVIEW',
+                payload: {
+                    sourceName,
+                    sport,
+                    eventsSeen: events.length,
+                    eventCards,
+                    requiredPublicOutputs: [
+                        'homepage event module',
+                        'event detail pages',
+                        'upcoming fights list',
+                        'prediction deadline reminders',
+                        'post-event result status blocks',
+                    ],
+                    dailyPublishingTarget: {
+                        postsPerDay: '2-5',
+                        recommendedSlots: ['8 AM calendar update', '5 PM countdown asset', '10 PM result/update asset'],
+                    },
+                    dataQualityChecks: [
+                        'Verify event name, fighter names, event date/time, and prediction deadline before publishing.',
+                        'Verify poster and fighter photo URLs are valid before sending to backend/frontend.',
+                        'Do not overwrite live event data directly from swarm output.',
+                    ],
+                    backendApplyPlan: {
+                        action: 'backend_review_and_apply_event_calendar_candidates',
+                        requiresBackendValidation: true,
+                        safeToAutoApply: false,
+                    },
+                },
+                provenance: {
+                    provider: 'internal-event-calendar-agent',
+                    model: 'rules-v1',
+                    promptVersion: 'event-calendar-daily-v1',
+                    agentVersion: this.version,
+                    generatedAt: new Date(),
+                    sources: [],
+                },
+                quality: { score: events.length ? 84 : 68, warnings: events.length ? [] : ['No event snapshot was supplied; output is a daily operating template.'] },
+                metadata: { mode: job.mode, automationKey: input.automationKey, sport, growthSystem: 'july-10000-signups' },
+            },
+        };
     }
     async calendarRefreshPlan(job) {
         const input = job.input || {};
@@ -159,6 +217,25 @@ export class DataCandidateAgent {
                     mode: job.mode,
                 },
             },
+        };
+    }
+    calendarCard(item, index) {
+        const record = coerceRecord(item);
+        const fighterA = String(record.matchFighterA || record.fighterA || record.competitorA || 'Fighter A');
+        const fighterB = String(record.matchFighterB || record.fighterB || record.competitorB || 'Fighter B');
+        const title = String(record.title || record.matchName || record.eventName || `${fighterA} vs ${fighterB}`);
+        return {
+            priority: index < 3 ? 'high' : 'medium',
+            title,
+            fighterA,
+            fighterB,
+            eventDate: record.eventDate || record.matchDate || record.date || undefined,
+            predictionDeadline: record.predictionDeadline || record.lockAt || undefined,
+            posterUrl: record.posterUrl || record.promotionBackground || undefined,
+            fighterPhotoUrls: [record.fighterAImage, record.fighterBImage].filter(Boolean),
+            countdownRequired: true,
+            resultTrackingRequired: true,
+            publicPageCandidate: true,
         };
     }
     sportLabel(sport) {

@@ -1,4 +1,5 @@
 import { AUTOMATION_DEFINITIONS } from '../automations/definitions.js';
+import { env } from '../config/env.js';
 import { getAiProvider } from '../providers/ai/index.js';
 import { getString } from './base.js';
 export class AutomationAgent {
@@ -100,10 +101,24 @@ export class AutomationAgent {
         return `Operational artifact generated for ${job.jobType} in ${job.mode} mode.`;
     }
     defaultActions(jobType) {
+        if (jobType === 'analytics.july-10000-signup-growth-plan') {
+            return [
+                { action: 'Review July growth operating plan daily', owner: 'admin', risk: 'low', note: `Goal is ${env.JULY_SIGNUP_GOAL} July signups; generated numbers are targets, not verified analytics.` },
+                { action: 'Approve content batches before publishing', owner: 'admin', risk: 'medium', note: 'Keep all blog, social, YouTube, and notification assets in approval flow until backend publishing controls are live.' },
+                { action: 'Feed verified event, result, leaderboard, and signup metrics into the next run', owner: 'backend', risk: 'medium', note: 'The swarm should not invent community percentages, results, rankings, or conversion metrics.' },
+            ];
+        }
         if (jobType.startsWith('media.')) {
             return [
-                { action: 'Review image prompt for brand safety', owner: 'admin', risk: 'medium', note: 'Avoid using unofficial logos, protected likenesses, or misleading event artwork.' },
+                { action: 'Review image prompt for brand safety', owner: 'admin', risk: 'medium', note: 'Avoid unofficial logos, protected likenesses, misleading event artwork, or unapproved fighter images.' },
+                { action: 'Apply small Fantasy MMadness logo overlay', owner: 'frontend', risk: 'low', note: env.BRAND_LOGO_URL ? `Use ${env.BRAND_LOGO_URL} in the ${env.BRAND_LOGO_CORNER} corner.` : 'Set BRAND_LOGO_URL before generating final visual assets.' },
                 { action: 'Generate media through approved design workflow', owner: 'frontend', risk: 'medium', note: 'Phase 1 does not upload media to production.' },
+            ];
+        }
+        if (jobType === 'notification.community-retention-daily') {
+            return [
+                { action: 'Review prediction reminders and league invites', owner: 'admin', risk: 'low', note: 'Use only verified active events and deadlines.' },
+                { action: 'Send through backend notification/email system after approval', owner: 'backend', risk: 'medium', note: 'Respect opt-outs, user preferences, and rate limits.' },
             ];
         }
         if (jobType.startsWith('notification.')) {
@@ -122,6 +137,16 @@ export class AutomationAgent {
         ];
     }
     defaultFollowUps(jobType) {
+        if (jobType === 'analytics.july-10000-signup-growth-plan') {
+            return [
+                { jobType: 'data.event-calendar-daily-update', reason: 'Keep homepage and event pages aligned with upcoming fights and deadlines.' },
+                { jobType: 'content.fight-card-daily-package', reason: 'Turn every combat event into prediction/signup pages and cards.' },
+                { jobType: 'content.blog-seo-daily-articles', reason: 'Generate 2-4 SEO article briefs per day.' },
+                { jobType: 'social.youtube-growth-video-draft', reason: 'Create 2-4 YouTube long-form trust/discovery videos per day.' },
+                { jobType: 'social.short-form-video-pack', reason: 'Create 5-10 short-form clips per day.' },
+                { jobType: 'notification.community-retention-daily', reason: 'Create return-visit reminders and league invites.' },
+            ];
+        }
         if (jobType === 'automation.draft-queue-generation') {
             return [
                 { jobType: 'content.article', reason: 'Create priority blog drafts from approved queue items.' },

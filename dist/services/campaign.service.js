@@ -28,6 +28,19 @@ const TONIGHT_EXTRA_KEYS = [
     'dashboard.userFightOpportunities',
     'analytics.userGrowth1000Plan',
 ];
+const JULY_10000_GROWTH_KEYS = [
+    'growth.july10000SystemPlan',
+    'event.calendarDailyUpdate',
+    'fightCard.dailyPackage',
+    'blogSeo.dailyArticles',
+    'social.instagramGrowthPosts',
+    'social.facebookGrowthPosts',
+    'social.xGrowthPosts',
+    'social.youtubeGrowthVideoDraft',
+    'social.shortFormVideoPack',
+    'community.retentionDaily',
+    'media.brandedPostImagePrompt',
+];
 const CAMPAIGN_PACKS = [
     {
         campaignType: 'fight_full_campaign',
@@ -98,6 +111,15 @@ const CAMPAIGN_PACKS = [
             'blog.approved.newsletterDraft',
             'seo.openGraphTwitterCards',
         ],
+    },
+    {
+        campaignType: 'july_10000_signup_growth_system',
+        label: 'July 10,000 signup growth system',
+        description: 'Run the safe daily growth system: event calendar, fight card, Instagram, Facebook, X, YouTube, Shorts, blog/SEO, media, and retention draft agents.',
+        defaultVertical: 'combat',
+        defaultSport: 'combat',
+        defaultSections: ['content', 'seo', 'social', 'media', 'analytics', 'notification', 'data'],
+        automationKeys: JULY_10000_GROWTH_KEYS,
     },
     {
         campaignType: 'contest_promotion_campaign',
@@ -363,6 +385,8 @@ function normalizeSourceEntity(sourceEntity, title, sport) {
 function inferSport(campaignType, fallback, input) {
     if (campaignType === 'boxing_fight_campaign')
         return 'boxing';
+    if (campaignType === 'july_10000_signup_growth_system')
+        return fallback;
     const rawSport = typeof input.sport === 'string' ? input.sport.toLowerCase() : typeof input.discipline === 'string' ? input.discipline.toLowerCase() : '';
     if (['boxing', 'mma', 'kickboxing', 'combat', 'pro_wrestling'].includes(rawSport))
         return rawSport;
@@ -380,6 +404,8 @@ function humanIntent(campaignType, sport) {
         return 'Promote a boxing fight as a first-class campaign, not generic MMA/combat copy.';
     if (campaignType === 'fight_full_campaign')
         return 'Run all selected agents for one fight and return visible artifacts for admin review.';
+    if (campaignType === 'july_10000_signup_growth_system')
+        return 'Run the safe July 10,000-signup growth system as draft/approval artifacts across content, social, YouTube, media, calendar, and retention.';
     if (campaignType === 'pro_wrestling_match_campaign')
         return 'Run all selected pro-wrestling agents for one match.';
     return 'Run selected automation agents as one grouped campaign.';

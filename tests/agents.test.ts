@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { ContentAgent } from '../src/agents/content.agent.js';
 import { WrestlingAgent } from '../src/agents/wrestling.agent.js';
 import { SeoAgent } from '../src/agents/seo.agent.js';
+import { SocialAgent } from '../src/agents/social.agent.js';
+import { DataCandidateAgent } from '../src/agents/data.agent.js';
 
 const baseJob: any = {
   jobId: 'job_test',
@@ -42,4 +44,25 @@ describe('agents', () => {
     expect(result.artifact.artifactType).toBe('wrestling.scorecard-suggestion');
     expect((result.artifact.payload as any).safety.advisoryOnly).toBe(true);
   });
+
+  it('social agent creates YouTube growth videos with required CTA', async () => {
+    const result = await new SocialAgent().run({
+      ...baseJob,
+      jobType: 'social.youtube-growth-video-draft',
+      input: { topic: 'Weekend fight card', sport: 'boxing' },
+    });
+    expect(result.artifact.artifactType).toBe('social.post-draft');
+    expect((result.artifact.payload as any).youtubeVideos?.[0]?.requiredEndingLine).toBe('Make your picks on Fantasy MMadness before the event starts.');
+  });
+
+  it('data agent creates event calendar daily update artifacts', async () => {
+    const result = await new DataCandidateAgent().run({
+      ...baseJob,
+      jobType: 'data.event-calendar-daily-update',
+      input: { events: [{ matchFighterA: 'Fighter A', matchFighterB: 'Fighter B', matchDate: '2026-07-01' }] },
+    });
+    expect(result.artifact.artifactType).toBe('data.calendar-refresh-plan');
+    expect((result.artifact.payload as any).eventsSeen).toBe(1);
+  });
+
 });

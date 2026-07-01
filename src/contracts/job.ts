@@ -110,6 +110,18 @@ export const jobTypeValues = [
   'content.sport-landing-page-brief',
   'content.fight-detail-page-brief',
   'content.fighter-profile-page-brief',
+  'data.event-calendar-daily-update',
+  'content.fight-card-daily-package',
+  'content.blog-seo-daily-articles',
+  'social.instagram-growth-posts',
+  'social.facebook-growth-posts',
+  'social.x-growth-posts',
+  'social.youtube-growth-video-draft',
+  'social.short-form-video-pack',
+  'notification.community-retention-daily',
+  'analytics.july-10000-signup-growth-plan',
+  'media.blog-featured-image-prompt',
+  'media.branded-post-image-prompt',
 ] as const;
 
 export const jobTypeSchema = z.enum(jobTypeValues);
